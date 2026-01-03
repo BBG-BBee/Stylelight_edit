@@ -1,0 +1,23 @@
+{
+    // VS Code 디버그 설정 파일 형식의 버전입니다.
+    "version": "0.2.0",
+    "configurations": [
+        {
+            // 디버그 실행 목록에서 표시될 이름입니다.
+            "name": "Python: Test Lighting",
+            // 사용할 디버거 언어 유형입니다 (여기서는 Python).
+            "type": "python",
+            "request": "launch",
+            // 실행할 파이썬 스크립트의 경로입니다. ${workspaceFolder}는 프로젝트의 최상위 폴더를 가리킵니다.
+            "program": "${workspaceFolder}/test_lighting.py",
+            // 실행 결과를 보여줄 터미널 종류입니다 (통합 터미널 사용).
+            "console": "integratedTerminal",
+            // OpenMP 라이브러리 중복 로드 오류를 방지하기 위한 환경 변수 설정입니다.
+            "env": {
+                "KMP_DUPLICATE_LIB_OK": "TRUE"
+            },
+            // True로 설정하면 내가 작성한 코드만 디버깅하고, 외부 라이브러리 코드는 건너뜁니다.
+            "justMyCode": true
+        }
+    ]
+}

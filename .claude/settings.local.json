@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python Diagnoze.py:*)",
+      "Bash(D:\\\\ANACONDA\\\\envs\\\\StyleLight_conda\\\\python.exe:*)",
+      "Bash(conda activate:*)",
+      "Bash(\"D:/ANACONDA/envs/StyleLight_conda/python.exe\" Diagnoze.py)",
+      "Bash(where:*)",
+      "Bash(\"D:/ANACONDA/envs/StyleLight_conda/bin/nvcc.exe\" --version)",
+      "Bash(dir \"C:\\\\Program Files \\(x86\\)\\\\Microsoft Visual Studio\" /s /b)",
+      "Bash(findstr:*)"
+    ]
+  }
+}
