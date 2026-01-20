@@ -357,6 +357,50 @@ class ToRGBLayer(torch.nn.Module):
         x = modulated_conv2d(x=x, weight=self.weight, styles=styles, demodulate=False, fused_modconv=fused_modconv)
         x = bias_act.bias_act(x, self.bias.to(x.dtype), clamp=self.conv_clamp)
         return x
+
+
+@persistence.persistent_class
+class ToRGBLayerHDR(torch.nn.Module):
+    """
+    물리적 HDR 출력을 위한 ToRGB 레이어
+
+    Softplus 활성화 함수를 사용하여 물리적 휘도(cd/m²)의
+    비음수성(Non-negativity)과 무한한 동적 범위를 지원합니다.
+
+    출력 범위: [0, ∞) - 물리적 휘도 스케일
+    """
+    def __init__(self, in_channels, out_channels, w_dim, kernel_size=1,
+                 conv_clamp=None, channels_last=False,
+                 activation='softplus',  # 'softplus', 'linear', 'relu'
+                 softplus_beta=1.0):     # Softplus의 beta 파라미터
+        super().__init__()
+        self.conv_clamp = conv_clamp
+        self.activation = activation
+        self.softplus_beta = softplus_beta
+        self.affine = FullyConnectedLayer(w_dim, in_channels, bias_init=1)
+        memory_format = torch.channels_last if channels_last else torch.contiguous_format
+        self.weight = torch.nn.Parameter(torch.randn([out_channels, in_channels, kernel_size, kernel_size]).to(memory_format=memory_format))
+        self.bias = torch.nn.Parameter(torch.zeros([out_channels]))
+        self.weight_gain = 1 / np.sqrt(in_channels * (kernel_size ** 2))
+
+    def forward(self, x, w, fused_modconv=True):
+        styles = self.affine(w) * self.weight_gain
+        x = modulated_conv2d(x=x, weight=self.weight, styles=styles, demodulate=False, fused_modconv=fused_modconv)
+
+        # Bias 추가 (클램핑 없이)
+        x = x + self.bias.to(x.dtype).reshape(1, -1, 1, 1)
+
+        # 활성화 함수 적용
+        if self.activation == 'softplus':
+            # Softplus: y = (1/beta) * ln(1 + exp(beta * x))
+            # 출력: [0, ∞) - 물리적 휘도에 적합
+            x = torch.nn.functional.softplus(x, beta=self.softplus_beta)
+        elif self.activation == 'relu':
+            # ReLU: 음수 제거
+            x = torch.nn.functional.relu(x)
+        # 'linear': 활성화 없음 (기존 방식과 호환)
+
+        return x
 #----------------------------------------------------------------------------
 
 @persistence.persistent_class
@@ -376,6 +420,8 @@ class SynthesisBlock(torch.nn.Module):
         conv_clamp          = None,         # 컨볼루션 레이어 출력을 +-X로 클램프, None = 클램핑 비활성화.
         use_fp16            = False,        # 이 블록에 FP16 사용?
         fp16_channels_last  = False,        # FP16과 함께 channels-last 메모리 포맷 사용?
+        hdr_mode            = False,        # HDR 물리 모드: Softplus 활성화 사용
+        hdr_activation      = 'softplus',   # HDR 모드 활성화 함수: 'softplus', 'relu', 'linear'
         **layer_kwargs,                     # SynthesisLayer에 전달할 인자.
     ):
         assert architecture in ['orig', 'skip', 'resnet']
@@ -388,16 +434,17 @@ class SynthesisBlock(torch.nn.Module):
         self.architecture = architecture
         self.use_fp16 = use_fp16
         self.channels_last = (use_fp16 and fp16_channels_last)
+        self.hdr_mode = hdr_mode
         self.register_buffer('resample_filter', upfirdn2d.setup_filter(resample_filter))
         self.num_conv = 0
         self.num_torgb = 0
- 
+
         if resolution>=32:
             out_channels_=out_channels
         else:
             out_channels_=out_channels
 
-     
+
         if in_channels == 0:
             self.const = torch.nn.Parameter(torch.randn([out_channels, resolution, 2*resolution]))
 
@@ -410,8 +457,14 @@ class SynthesisBlock(torch.nn.Module):
         self.num_conv += 1
 
         if is_last or architecture == 'skip':
-            self.torgb = ToRGBLayer(out_channels, img_channels, w_dim=w_dim,
-                conv_clamp=conv_clamp, channels_last=self.channels_last)
+            # HDR 모드: Softplus 활성화 사용 (물리적 휘도 출력)
+            if hdr_mode and is_last:
+                self.torgb = ToRGBLayerHDR(out_channels, img_channels, w_dim=w_dim,
+                    conv_clamp=None, channels_last=self.channels_last,
+                    activation=hdr_activation)
+            else:
+                self.torgb = ToRGBLayer(out_channels, img_channels, w_dim=w_dim,
+                    conv_clamp=conv_clamp, channels_last=self.channels_last)
             self.num_torgb += 1
 
         if in_channels != 0 and architecture == 'resnet':

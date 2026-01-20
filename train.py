@@ -387,6 +387,24 @@ def setup_training_loop_kwargs(
         args.G_kwargs.synthesis_kwargs.num_fp16_res = args.D_kwargs.num_fp16_res = 0
         args.G_kwargs.synthesis_kwargs.conv_clamp = args.D_kwargs.conv_clamp = None
 
+    # -------------------------------------------------
+    # HDR 물리 모드: Softplus 활성화 및 Full FP32 강제
+    # -------------------------------------------------
+
+    # hdr_mode가 전역으로 정의되어 있다면 사용, 아니면 False
+    hdr_mode = getattr(args, 'hdr_mode', False) if hasattr(args, 'hdr_mode') else False
+
+    if hdr_mode:
+        # HDR 모드: FP32 강제화
+        args.G_kwargs.synthesis_kwargs.num_fp16_res = 0
+        args.D_kwargs.num_fp16_res = 0
+        args.G_kwargs.synthesis_kwargs.conv_clamp = None
+        args.D_kwargs.conv_clamp = None
+        # HDR 활성화 설정 (Softplus)
+        args.G_kwargs.synthesis_kwargs.hdr_mode = True
+        args.G_kwargs.synthesis_kwargs.hdr_activation = 'softplus'
+        desc += '-hdr_physical'
+
     if nhwc is None:
         nhwc = False
     assert isinstance(nhwc, bool)

@@ -272,3 +272,179 @@ class ImageFolderDataset(Dataset):
 #----------------------------------------------------------------------------
 
 
+class HDRPhysicalDataset(Dataset):
+    """
+    물리적 휘도(cd/m²)를 보존하는 FP32 데이터 로더
+
+    DTAM 학습을 위해 톤매핑 없이 선형 HDR 데이터를 직접 로드합니다.
+    Stage 1: 구조 학습 (S2R-HDR)
+    Stage 2: 물리 보정 (Laval Photometric)
+    """
+    def __init__(self,
+        path,                   # 데이터셋 경로 (디렉토리 또는 zip)
+        resolution      = None, # 목표 해상도
+        linear_hdr      = True, # True: 톤매핑 없이 선형 HDR 로드
+        dataset_type    = 'auto', # 'auto', 's2r_hdr', 'laval'
+        target_height   = 512,  # 목표 높이 (512x1024 Equirectangular)
+        target_width    = 1024, # 목표 너비
+        **super_kwargs,
+    ):
+        self._path = path
+        self._zipfile = None
+        self.linear_hdr = linear_hdr
+        self.dataset_type = dataset_type
+        self.target_height = target_height
+        self.target_width = target_width
+
+        # 톤매핑은 LDR 생성 시에만 사용 (비교용)
+        self.tonemap = TonemapHDR(gamma=2.4, percentile=50, max_mapping=0.5)
+
+        if os.path.isdir(self._path):
+            self._type = 'dir'
+            self._all_fnames = {os.path.relpath(os.path.join(root, fname), start=self._path)
+                               for root, _dirs, files in os.walk(self._path) for fname in files}
+        elif self._file_ext(self._path) == '.zip':
+            self._type = 'zip'
+            self._all_fnames = set(self._get_zipfile().namelist())
+        else:
+            raise IOError('Path must point to a directory or zip')
+
+        # HDR 파일만 필터링 (.exr, .hdr)
+        self._image_fnames = sorted(
+            fname for fname in self._all_fnames
+            if self._file_ext(fname) in ['.exr', '.hdr']
+        )
+        if len(self._image_fnames) == 0:
+            raise IOError('No HDR image files (.exr, .hdr) found in the specified path')
+
+        name = os.path.splitext(os.path.basename(self._path))[0]
+        raw_shape = [len(self._image_fnames)] + list(self._load_raw_image(0).shape)
+
+        if resolution is not None and (raw_shape[2] != resolution and raw_shape[3] != resolution):
+            raise IOError('Image files do not match the specified resolution')
+
+        super().__init__(name=name, raw_shape=raw_shape, **super_kwargs)
+
+    @staticmethod
+    def _file_ext(fname):
+        return os.path.splitext(fname)[1].lower()
+
+    def _get_zipfile(self):
+        assert self._type == 'zip'
+        if self._zipfile is None:
+            self._zipfile = zipfile.ZipFile(self._path)
+        return self._zipfile
+
+    def _open_file(self, fname):
+        if self._type == 'dir':
+            return open(os.path.join(self._path, fname), 'rb')
+        if self._type == 'zip':
+            return self._get_zipfile().open(fname, 'r')
+        return None
+
+    def close(self):
+        try:
+            if self._zipfile is not None:
+                self._zipfile.close()
+        finally:
+            self._zipfile = None
+
+    def __getstate__(self):
+        return dict(super().__getstate__(), _zipfile=None)
+
+    def _load_raw_image(self, raw_idx):
+        """
+        물리적 휘도를 보존하는 HDR 이미지 로드
+
+        Returns:
+            image: (C, H, W) 형태의 FP32 텐서
+                - linear_hdr=True: 3채널 선형 HDR (cd/m² 스케일)
+                - linear_hdr=False: 6채널 (LDR 3ch + HDR 3ch)
+        """
+        fname = self._image_fnames[raw_idx]
+        file_path = os.path.join(self._path, fname)
+
+        # EnvironmentMap으로 HDR 로드 (선형 휘도 유지)
+        e = EnvironmentMap(file_path, 'latlong')
+        image_hdr = e.data.astype(np.float32)  # FP32 강제
+
+        # 해상도 조정 (Lanczos 리샘플링)
+        if image_hdr.shape[0] != self.target_height or image_hdr.shape[1] != self.target_width:
+            image_hdr = self._resize_hdr(image_hdr, self.target_height, self.target_width)
+
+        if self.linear_hdr:
+            # 선형 HDR만 반환 (톤매핑 없음)
+            # 음수 값 방지 (물리적 휘도는 0 이상)
+            image_hdr = np.maximum(image_hdr, 0.0)
+            image = image_hdr
+        else:
+            # LDR + HDR 6채널 출력 (기존 방식과 호환)
+            img_ldr_, alpha, image_hdr_ = self.tonemap(image_hdr)
+            img_ldr = img_ldr_ * 2 - 1  # [-1, 1]
+            image_hdr_normalized = image_hdr_ * 2 - 1
+            image_hdr_normalized = np.clip(image_hdr_normalized, -1, 1e8)
+            image = np.concatenate((img_ldr, image_hdr_normalized), axis=2)
+
+        # HWC => CHW
+        if image.ndim == 2:
+            image = image[:, :, np.newaxis]
+        image = image.transpose(2, 0, 1)
+
+        return image.astype(np.float32)
+
+    def _resize_hdr(self, image, target_h, target_w):
+        """
+        HDR 이미지를 Lanczos 리샘플링으로 리사이즈
+
+        주의: 휘도 값 보존을 위해 선형 공간에서 리사이즈
+        """
+        # OpenCV는 채널별로 리사이즈
+        resized = cv2.resize(
+            image,
+            (target_w, target_h),
+            interpolation=cv2.INTER_LANCZOS4
+        )
+        return resized
+
+    def _load_raw_labels(self):
+        fname = 'dataset.json'
+        if fname not in self._all_fnames:
+            return None
+        with self._open_file(fname) as f:
+            labels = json.load(f)['labels']
+        if labels is None:
+            return None
+        labels = dict(labels)
+        labels = [labels[fname.replace('\\', '/')] for fname in self._image_fnames]
+        labels = np.array(labels)
+        labels = labels.astype({1: np.int64, 2: np.float32}[labels.ndim])
+        return labels
+
+    def get_luminance(self, image):
+        """
+        RGB HDR 이미지에서 휘도(Y) 채널 추출
+
+        ITU-R BT.709 표준 사용:
+        Y = 0.2126 * R + 0.7152 * G + 0.0722 * B
+
+        Args:
+            image: (3, H, W) 또는 (B, 3, H, W) 형태의 HDR 이미지
+
+        Returns:
+            luminance: (1, H, W) 또는 (B, 1, H, W) 형태의 휘도 맵
+        """
+        if isinstance(image, np.ndarray):
+            if image.ndim == 3:
+                return 0.2126 * image[0:1] + 0.7152 * image[1:2] + 0.0722 * image[2:3]
+            else:
+                return 0.2126 * image[:, 0:1] + 0.7152 * image[:, 1:2] + 0.0722 * image[:, 2:3]
+        else:  # torch.Tensor
+            if image.ndim == 3:
+                return 0.2126 * image[0:1] + 0.7152 * image[1:2] + 0.0722 * image[2:3]
+            else:
+                return 0.2126 * image[:, 0:1] + 0.7152 * image[:, 1:2] + 0.0722 * image[:, 2:3]
+
+
+#----------------------------------------------------------------------------
+
+

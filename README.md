@@ -18,34 +18,49 @@ S-Lab, Nanyang Technological University
 
 
 ## 1. 필수 조건
-- Linux 또는 macOS
-- Python 3
-- NVIDIA GPU + CUDA cuDNN(10.2)
-- PyTorch >= 1.7
+- Linux, Windows, 또는 macOS
+- Python 3.8+
+- NVIDIA GPU + CUDA 12.1
+- PyTorch 2.1.0+
 - OpenCV
 
 ## 2. 설치
 코드를 쉽게 실행하기 위해 가상 환경(conda) 사용을 권장합니다.
 
-```
+### 기본 설치
+```bash
 conda create -n StyleLight_conda python=3.8
 conda activate StyleLight_conda
-pip install lpips
-pip install wandb
+
+# PyTorch 설치 (CUDA 12.1)
 conda install pytorch==2.1.0 torchvision==0.16.0 torchaudio==2.1.0 pytorch-cuda=12.1 -c pytorch -c nvidia
 
-pip install matplotlib
-pip install dlib
-pip install imageio
-pip install einops
+# 필수 패키지
+pip install lpips wandb matplotlib dlib imageio einops
+pip install imageio-ffmpeg ninja opencv-python
 
-// sudo apt-get install openexr and libopenexr-dev
+# OpenEXR (Linux: sudo apt-get install openexr libopenexr-dev 먼저 실행)
 pip install OpenEXR
-
-pip install imageio-ffmpeg
-pip install ninja
-pip install opencv-python
 ```
+
+### Linux/WSL2 추가 설치 (CUDA 커널 JIT 컴파일용)
+```bash
+# GCC 12 설치 (CUDA 12.x는 GCC 12 이하만 지원)
+conda install -c conda-forge gxx_linux-64=12
+
+# nvcc 버전을 PyTorch CUDA 버전과 일치시키기
+conda install -c nvidia cuda-nvcc=12.1
+
+# CCCL 헤더 설치 (thrust, cub 등)
+conda install -c nvidia cuda-cccl
+```
+
+**중요**: Linux에서 CUDA 커널 컴파일 시 다음 조건이 충족되어야 합니다:
+- GCC 버전 12 이하
+- nvcc 버전이 PyTorch CUDA 버전(12.1)과 일치
+- CCCL 헤더 경로가 설정됨 (setup_env.py가 자동 처리)
+
+자세한 설정 방법은 [setup_README.md](setup_README.md)를 참조하세요.
 
 
 

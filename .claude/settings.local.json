@@ -8,7 +8,25 @@
       "Bash(where:*)",
       "Bash(\"D:/ANACONDA/envs/StyleLight_conda/bin/nvcc.exe\" --version)",
       "Bash(dir \"C:\\\\Program Files \\(x86\\)\\\\Microsoft Visual Studio\" /s /b)",
-      "Bash(findstr:*)"
+      "Bash(findstr:*)",
+      "Bash(dir:*)",
+      "Bash(nvidia-smi:*)",
+      "Bash(nvcc:*)",
+      "Bash(conda create:*)",
+      "Bash(source ~/miniconda3/etc/profile.d/conda.sh)",
+      "Bash(conda install:*)",
+      "Bash(sudo apt-get:*)",
+      "Bash(sudo apt-get install:*)",
+      "Bash(pip install:*)",
+      "Bash(python:*)",
+      "Bash(conda env list:*)",
+      "Bash(source:*)",
+      "Bash(conda list:*)",
+      "Bash(conda search:*)",
+      "Bash(TORCH_CUDA_ARCH_LIST=\"8.6;8.9\" python:*)",
+      "Bash(/home/silverbug/miniconda3/envs/linux_stylelight_conda/bin/x86_64-conda-linux-gnu-cc:*)",
+      "Bash(export TORCH_CUDA_ARCH_LIST=\"8.6;8.9\")",
+      "Bash(export CPATH=\"/home/silverbug/miniconda3/envs/linux_stylelight_conda/targets/x86_64-linux/include/cccl:$CPATH\":*)"
     ]
   }
 }
