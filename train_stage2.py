@@ -2,17 +2,19 @@
 Stage 2 학습 스크립트: 물리적 보정 (Physical Calibration)
 
 Laval Photometric 데이터셋으로 물리적 정합성을 보정합니다.
-Stage 1에서 학습된 구조 위에 LoRA를 적용하여 물리적 휘도를 정확하게 학습합니다.
+Stage 1에서 학습된 구조 위에 S2R-Adapter를 적용하여 물리적 휘도를 정확하게 학습합니다.
 
 핵심 구성요소:
 - DTAM: ON (T_onset=300, T_peak=1000 cd/m²)
 - PU21: 지각적 균일 인코딩
-- LoRA: 저랭크 적응 (rank=16)
+- S2R-Adapter: 3-브랜치 구조 (shared + transfer1 + transfer2)
+  - r1=1 (미세 조정), r2=128 (광범위 적응)
+  - scale1, scale2로 도메인 유사도에 따른 비율 조절
 - 손실: L_phys + λ_consist * L_consist + L_GAN
 
 사용법:
     python train_stage2.py --stage1_ckpt ./stage1_checkpoint.pkl --data /path/to/laval --outdir ./training-runs-stage2
-    python train_stage2.py --stage1_ckpt ./stage1_checkpoint.pkl --data /path/to/laval --outdir ./training-runs-stage2 --lora_rank 16
+    python train_stage2.py --stage1_ckpt ./stage1_checkpoint.pkl --data /path/to/laval --outdir ./training-runs-stage2 --adapter_r1 1 --adapter_r2 128
 """
 
 import os
@@ -34,7 +36,13 @@ import torch.nn.functional as F
 import dnnlib
 
 from training import training_loop
-from training.lora import apply_lora_to_generator, get_lora_parameters, freeze_non_lora_parameters
+from training.s2r_adapter import (
+    apply_s2r_adapter_to_generator,
+    get_s2r_adapter_parameters,
+    freeze_non_adapter_parameters,
+    set_adapter_scales,
+    count_s2r_adapter_parameters,
+)
 from training.loss import PhysicalLoss, ConsistencyLoss, CombinedPhysicalLoss
 from training.dtam import DTAM, rgb_to_luminance
 from training.pu21 import PU21Encoder
@@ -84,44 +92,49 @@ def load_stage1_checkpoint(checkpoint_path: str, device='cuda'):
 
 #----------------------------------------------------------------------------
 
-def create_stage2_generator(G_stage1, lora_rank=16, lora_alpha=1.0, lora_dropout=0.0):
+def create_stage2_generator(G_stage1, adapter_r1=1, adapter_r2=128,
+                            freeze_shared=True, init_scale1=1.0, init_scale2=1.0):
     """
-    Stage 2 Generator 생성 (Stage 1 복사 + LoRA 적용)
+    Stage 2 Generator 생성 (Stage 1 복사 + S2R-Adapter 적용)
 
     Args:
         G_stage1: Stage 1에서 학습된 Generator
-        lora_rank: LoRA 랭크
-        lora_alpha: LoRA 스케일링
-        lora_dropout: LoRA 드롭아웃
+        adapter_r1: 전송 브랜치 1의 rank (기본값: 1, 미세 조정)
+        adapter_r2: 전송 브랜치 2의 rank (기본값: 128, 광범위 적응)
+        freeze_shared: 공유 브랜치 동결 여부 (기본값: True)
+        init_scale1: scale1 초기값 (기본값: 1.0)
+        init_scale2: scale2 초기값 (기본값: 1.0)
 
     Returns:
-        G_stage2: LoRA가 적용된 Stage 2 Generator
+        G_stage2: S2R-Adapter가 적용된 Stage 2 Generator
     """
     print('Stage 2 Generator 생성 중...')
 
     # Stage 1 모델 복사
     G_stage2 = copy.deepcopy(G_stage1)
 
-    # LoRA 적용
-    G_stage2 = apply_lora_to_generator(
+    # S2R-Adapter 적용
+    G_stage2, adapter_params = apply_s2r_adapter_to_generator(
         G_stage2,
-        rank=lora_rank,
-        alpha=lora_alpha,
-        dropout=lora_dropout,
-        target_modules=['affine', 'conv'],  # Synthesis 레이어의 affine과 conv에 적용
+        r1=adapter_r1,
+        r2=adapter_r2,
+        freeze_shared=freeze_shared,
+        init_scale1=init_scale1,
+        init_scale2=init_scale2,
+        target_modules=['affine'],  # SynthesisLayer의 affine 레이어
     )
 
-    # 원본 파라미터 동결, LoRA만 학습
-    freeze_non_lora_parameters(G_stage2)
+    # 원본 파라미터 동결, S2R-Adapter만 학습
+    freeze_non_adapter_parameters(G_stage2)
 
     # 학습 가능한 파라미터 확인
-    lora_params = get_lora_parameters(G_stage2)
-    total_params = sum(p.numel() for p in G_stage2.parameters())
-    trainable_params = sum(p.numel() for p in lora_params)
+    adapter_param_count, total_params, trainable_params = count_s2r_adapter_parameters(G_stage2)
 
     print(f'  전체 파라미터: {total_params:,}')
-    print(f'  LoRA 파라미터 (학습 가능): {trainable_params:,}')
-    print(f'  LoRA 비율: {trainable_params / total_params * 100:.2f}%')
+    print(f'  S2R-Adapter 파라미터: {adapter_param_count:,}')
+    print(f'  학습 가능 파라미터: {trainable_params:,}')
+    print(f'  S2R-Adapter 비율: {adapter_param_count / total_params * 100:.2f}%')
+    print(f'  설정: r1={adapter_r1}, r2={adapter_r2}, scale1={init_scale1}, scale2={init_scale2}')
 
     return G_stage2
 
@@ -147,10 +160,12 @@ def setup_stage2_training_kwargs(
     batch: int = None,
     gamma: float = None,
 
-    # LoRA 설정
-    lora_rank: int = 16,
-    lora_alpha: float = 1.0,
-    lora_dropout: float = 0.0,
+    # S2R-Adapter 설정
+    adapter_r1: int = 1,
+    adapter_r2: int = 128,
+    freeze_shared: bool = True,
+    init_scale1: float = 1.0,
+    init_scale2: float = 1.0,
 
     # DTAM 설정
     dtam_t_onset: float = 300.0,
@@ -177,7 +192,7 @@ def setup_stage2_training_kwargs(
     Stage 2 학습 설정 구성
 
     Stage 2 특징:
-    - Stage 1 모델 로드 + LoRA 적용
+    - Stage 1 모델 로드 + S2R-Adapter 적용
     - DTAM 활성화 (눈부심 영역 가중치)
     - PU21 인코딩 (지각적 균일성)
     - Physical Loss + Consistency Loss
@@ -260,14 +275,16 @@ def setup_stage2_training_kwargs(
         desc += '-mirror'
 
     # ------------------------------------------
-    # LoRA 설정
+    # S2R-Adapter 설정
     # ------------------------------------------
-    args.lora_kwargs = dnnlib.EasyDict(
-        rank=lora_rank,
-        alpha=lora_alpha,
-        dropout=lora_dropout,
+    args.s2r_adapter_kwargs = dnnlib.EasyDict(
+        r1=adapter_r1,
+        r2=adapter_r2,
+        freeze_shared=freeze_shared,
+        init_scale1=init_scale1,
+        init_scale2=init_scale2,
     )
-    desc += f'-lora{lora_rank}'
+    desc += f'-s2r_r1{adapter_r1}_r2{adapter_r2}'
 
     # ------------------------------------------
     # DTAM 설정
@@ -333,10 +350,10 @@ def setup_stage2_training_kwargs(
     args.batch_size = batch
     args.batch_gpu = batch // gpus
 
-    # LoRA는 더 높은 학습률 가능
+    # S2R-Adapter는 더 높은 학습률 가능
     args.G_opt_kwargs = dnnlib.EasyDict(
         class_name='torch.optim.Adam',
-        lr=0.001,  # LoRA는 더 높은 학습률 사용
+        lr=0.001,  # S2R-Adapter는 더 높은 학습률 사용
         betas=[0, 0.99],
         eps=1e-8,
     )
@@ -410,7 +427,7 @@ class Stage2TrainingLoop:
     """
     Stage 2 학습 루프
 
-    Stage 1 모델 위에 LoRA를 적용하고
+    Stage 1 모델 위에 S2R-Adapter를 적용하고
     DTAM 가중치 + PU21 인코딩으로 물리적 정합성을 학습합니다.
     """
 
@@ -423,12 +440,14 @@ class Stage2TrainingLoop:
             args.stage1_ckpt, self.device
         )
 
-        # Stage 2 Generator 생성 (LoRA 적용)
+        # Stage 2 Generator 생성 (S2R-Adapter 적용)
         self.G_stage2 = create_stage2_generator(
             self.G_stage1,
-            lora_rank=args.lora_kwargs.rank,
-            lora_alpha=args.lora_kwargs.alpha,
-            lora_dropout=args.lora_kwargs.dropout,
+            adapter_r1=args.s2r_adapter_kwargs.r1,
+            adapter_r2=args.s2r_adapter_kwargs.r2,
+            freeze_shared=args.s2r_adapter_kwargs.freeze_shared,
+            init_scale1=args.s2r_adapter_kwargs.init_scale1,
+            init_scale2=args.s2r_adapter_kwargs.init_scale2,
         )
 
         # 손실 함수 초기화
@@ -468,8 +487,8 @@ class Stage2TrainingLoop:
         print(f'  λ_gan: {args.loss_weights.lambda_gan}')
 
     def get_trainable_parameters(self):
-        """학습 가능한 파라미터 반환 (LoRA만)"""
-        return get_lora_parameters(self.G_stage2)
+        """학습 가능한 파라미터 반환 (S2R-Adapter만)"""
+        return get_s2r_adapter_parameters(self.G_stage2)
 
 #----------------------------------------------------------------------------
 
@@ -551,10 +570,12 @@ class CommaSeparatedList(click.ParamType):
 @click.option('--batch', help='배치 크기', type=int, metavar='INT')
 @click.option('--gamma', help='R1 gamma 오버라이드', type=float, metavar='FLOAT')
 
-# LoRA 설정
-@click.option('--lora_rank', help='LoRA 랭크 [기본값: 16]', type=int, default=16, metavar='INT')
-@click.option('--lora_alpha', help='LoRA 스케일링 [기본값: 1.0]', type=float, default=1.0, metavar='FLOAT')
-@click.option('--lora_dropout', help='LoRA 드롭아웃 [기본값: 0.0]', type=float, default=0.0, metavar='FLOAT')
+# S2R-Adapter 설정
+@click.option('--adapter_r1', help='S2R-Adapter 전송 브랜치 1 rank [기본값: 1]', type=int, default=1, metavar='INT')
+@click.option('--adapter_r2', help='S2R-Adapter 전송 브랜치 2 rank [기본값: 128]', type=int, default=128, metavar='INT')
+@click.option('--freeze_shared/--no-freeze_shared', help='공유 브랜치 동결 여부 [기본값: True]', default=True)
+@click.option('--init_scale1', help='scale1 초기값 [기본값: 1.0]', type=float, default=1.0, metavar='FLOAT')
+@click.option('--init_scale2', help='scale2 초기값 [기본값: 1.0]', type=float, default=1.0, metavar='FLOAT')
 
 # DTAM 설정
 @click.option('--dtam_t_onset', help='DTAM T_onset (cd/m²) [기본값: 300]', type=float, default=300.0, metavar='FLOAT')
@@ -582,7 +603,7 @@ def main(ctx, outdir, dry_run, **config_kwargs):
     Stage 2 학습: 물리적 정합성 보정
 
     Laval Photometric 데이터셋을 사용하여 물리적 휘도를 보정합니다.
-    Stage 1에서 학습된 구조 위에 LoRA를 적용하고,
+    Stage 1에서 학습된 구조 위에 S2R-Adapter를 적용하고,
     DTAM + PU21로 눈부심 영역의 정확도를 향상시킵니다.
 
     \b
@@ -590,8 +611,8 @@ def main(ctx, outdir, dry_run, **config_kwargs):
         # 기본 학습
         python train_stage2.py --stage1_ckpt ./stage1.pkl --data ./data/laval --outdir ./training-runs-stage2
 
-        # LoRA 랭크 32로 학습
-        python train_stage2.py --stage1_ckpt ./stage1.pkl --data ./data/laval --outdir ./training-runs-stage2 --lora_rank 32
+        # S2R-Adapter rank 조정
+        python train_stage2.py --stage1_ckpt ./stage1.pkl --data ./data/laval --outdir ./training-runs-stage2 --adapter_r1 2 --adapter_r2 64
 
         # DTAM 임계값 조정
         python train_stage2.py --stage1_ckpt ./stage1.pkl --data ./data/laval --outdir ./training-runs-stage2 --dtam_t_onset 250 --dtam_t_peak 800
@@ -610,7 +631,7 @@ def main(ctx, outdir, dry_run, **config_kwargs):
     print('  - 활성화: Softplus (비음수 물리적 휘도)')
     print('  - DTAM: ON (눈부심 영역 가중치)')
     print('  - PU21: 지각적 균일 인코딩')
-    print('  - LoRA: 저랭크 적응')
+    print('  - S2R-Adapter: 3-브랜치 구조 (shared + transfer1 + transfer2)')
     print('  - 손실: L_phys + λ_consist * L_consist + L_GAN')
     print()
 
@@ -642,10 +663,12 @@ def main(ctx, outdir, dry_run, **config_kwargs):
     print(f'이미지 수:          {args.training_set_kwargs.max_size}')
     print(f'배치 크기:          {args.batch_size} (GPU당 {args.batch_gpu})')
     print()
-    print('LoRA 설정:')
-    print(f'  랭크: {args.lora_kwargs.rank}')
-    print(f'  알파: {args.lora_kwargs.alpha}')
-    print(f'  드롭아웃: {args.lora_kwargs.dropout}')
+    print('S2R-Adapter 설정:')
+    print(f'  r1 (미세 조정): {args.s2r_adapter_kwargs.r1}')
+    print(f'  r2 (광범위 적응): {args.s2r_adapter_kwargs.r2}')
+    print(f'  공유 브랜치 동결: {args.s2r_adapter_kwargs.freeze_shared}')
+    print(f'  scale1: {args.s2r_adapter_kwargs.init_scale1}')
+    print(f'  scale2: {args.s2r_adapter_kwargs.init_scale2}')
     print()
     print('DTAM 설정:')
     print(f'  T_onset: {args.dtam_kwargs.T_onset} cd/m²')
@@ -680,7 +703,7 @@ def main(ctx, outdir, dry_run, **config_kwargs):
         'activation': 'softplus',
         'dtam_enabled': True,
         'dtam_params': dict(args.dtam_kwargs),
-        'lora_params': dict(args.lora_kwargs),
+        's2r_adapter_params': dict(args.s2r_adapter_kwargs),
         'loss_weights': dict(args.loss_weights),
         'loss_components': ['physical', 'consistency', 'gan'],
     }

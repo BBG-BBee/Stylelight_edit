@@ -63,11 +63,20 @@ def prepare_s2r_hdr(input_dir: str, output_dir: str,
     print(f"Found {len(input_files)} HDR files in {input_dir}")
     print(f"Target resolution: {target_h}x{target_w}")
 
-    processed_count = 0
+    # 통계 카운터
+    skipped_count = 0           # 전체 skip
+    resize_only_count = 0       # 리사이즈만
+    bit_convert_only_count = 0  # 32비트 변환만
+    format_only_count = 0       # 포맷 변환만 (.hdr → .exr)
+    full_process_count = 0      # 전체 처리 (리사이즈 + 32비트)
     failed_files = []
 
     for file_path in tqdm(input_files, desc="Processing S2R-HDR"):
         try:
+            # 출력 경로 먼저 계산
+            rel_path = file_path.relative_to(input_dir)
+            output_path = Path(output_dir) / rel_path.with_suffix('.exr')
+
             # HDR 이미지 로드 (선형 휘도 유지)
             image_hdr = imread(str(file_path))
 
@@ -75,23 +84,46 @@ def prepare_s2r_hdr(input_dir: str, output_dir: str,
                 failed_files.append(str(file_path))
                 continue
 
-            # FP32로 변환
-            image_hdr = image_hdr.astype(np.float32)
+            # 조건 체크
+            need_resize = (image_hdr.shape[0] != target_h or image_hdr.shape[1] != target_w)
+            need_bit_convert = (image_hdr.dtype != np.float32)
+
+            # 둘 다 OK면 전체 skip 또는 포맷 변환만
+            if not need_resize and not need_bit_convert:
+                if file_path.suffix.lower() == '.exr' and output_path.exists():
+                    skipped_count += 1
+                    continue
+                else:
+                    # 포맷 변환만 (.hdr → .exr)
+                    format_only_count += 1
+                    output_path.parent.mkdir(parents=True, exist_ok=True)
+                    imsave(str(output_path), image_hdr)
+                    continue
+
+            # 통계 카운터 증가
+            if need_resize and not need_bit_convert:
+                resize_only_count += 1
+            elif not need_resize and need_bit_convert:
+                bit_convert_only_count += 1
+            else:
+                full_process_count += 1
+
+            # 32비트 변환 필요시만
+            if need_bit_convert:
+                image_hdr = image_hdr.astype(np.float32)
 
             # 음수 값 제거 (물리적 휘도는 0 이상)
             image_hdr = np.maximum(image_hdr, 0.0)
 
-            # Lanczos 리샘플링으로 리사이즈
-            if image_hdr.shape[0] != target_h or image_hdr.shape[1] != target_w:
+            # 리사이즈 필요시만
+            if need_resize:
                 image_hdr = cv2.resize(
                     image_hdr,
                     (target_w, target_h),
                     interpolation=cv2.INTER_LANCZOS4
                 )
 
-            # 출력 경로 생성 (상대 경로 유지)
-            rel_path = file_path.relative_to(input_dir)
-            output_path = Path(output_dir) / rel_path.with_suffix('.exr')
+            # 출력 경로 생성
             output_path.parent.mkdir(parents=True, exist_ok=True)
 
             # EXR 형식으로 저장 (FP32)
@@ -104,19 +136,26 @@ def prepare_s2r_hdr(input_dir: str, output_dir: str,
                     failed_files.append(str(file_path))
                     continue
 
-            processed_count += 1
-
         except Exception as e:
             print(f"\nError processing {file_path}: {e}")
             failed_files.append(str(file_path))
 
-    print(f"\nProcessed: {processed_count}/{len(input_files)}")
+    # 전처리 결과 출력
+    processed_count = format_only_count + resize_only_count + bit_convert_only_count + full_process_count
+    print(f"\n=== 전처리 결과 ===")
+    print(f"전체 파일: {len(input_files)}개")
+    print(f"")
+    print(f"건너뜀: {skipped_count}개 (이미 {target_h}x{target_w} 32비트 EXR)")
+    print(f"포맷 변환만: {format_only_count}개 (.hdr → .exr)")
+    print(f"리사이즈만: {resize_only_count}개")
+    print(f"32비트 변환만: {bit_convert_only_count}개")
+    print(f"전체 처리: {full_process_count}개 (리사이즈 + 32비트)")
     if failed_files:
-        print(f"Failed: {len(failed_files)} files")
+        print(f"실패: {len(failed_files)}개")
         for f in failed_files[:5]:
             print(f"  - {f}")
         if len(failed_files) > 5:
-            print(f"  ... and {len(failed_files) - 5} more")
+            print(f"  ... 외 {len(failed_files) - 5}개")
 
     return processed_count
 
@@ -157,7 +196,12 @@ def prepare_laval_photometric(input_dir: str, output_dir: str,
     print(f"Target resolution: {target_h}x{target_w}")
     print(f"Apply exposure correction: {apply_exposure}")
 
-    processed_count = 0
+    # 통계 카운터
+    skipped_count = 0           # 전체 skip
+    resize_only_count = 0       # 리사이즈만
+    bit_convert_only_count = 0  # 32비트 변환만
+    format_only_count = 0       # 포맷 변환만 (.hdr → .exr)
+    full_process_count = 0      # 전체 처리 (리사이즈 + 32비트)
     failed_files = []
 
     # 휘도 통계 수집
@@ -165,6 +209,10 @@ def prepare_laval_photometric(input_dir: str, output_dir: str,
 
     for file_path in tqdm(input_files, desc="Processing Laval Photometric"):
         try:
+            # 출력 경로 먼저 계산
+            rel_path = file_path.relative_to(input_dir)
+            output_path = Path(output_dir) / rel_path.with_suffix('.exr')
+
             # HDR 이미지 로드
             image_hdr = imread(str(file_path))
 
@@ -172,8 +220,39 @@ def prepare_laval_photometric(input_dir: str, output_dir: str,
                 failed_files.append(str(file_path))
                 continue
 
-            # FP32로 변환
-            image_hdr = image_hdr.astype(np.float32)
+            # 조건 체크
+            need_resize = (image_hdr.shape[0] != target_h or image_hdr.shape[1] != target_w)
+            need_bit_convert = (image_hdr.dtype != np.float32)
+
+            # 둘 다 OK면 전체 skip 또는 포맷 변환만
+            if not need_resize and not need_bit_convert:
+                if file_path.suffix.lower() == '.exr' and output_path.exists():
+                    skipped_count += 1
+                    continue
+                else:
+                    # 포맷 변환만 (.hdr → .exr)
+                    format_only_count += 1
+                    # 노출값 적용
+                    if apply_exposure:
+                        exposure = _read_hdr_exposure(str(file_path))
+                        if exposure is not None:
+                            image_hdr = image_hdr * exposure
+                    image_hdr = np.maximum(image_hdr, 0.0)
+                    output_path.parent.mkdir(parents=True, exist_ok=True)
+                    imsave(str(output_path), image_hdr)
+                    continue
+
+            # 통계 카운터 증가
+            if need_resize and not need_bit_convert:
+                resize_only_count += 1
+            elif not need_resize and need_bit_convert:
+                bit_convert_only_count += 1
+            else:
+                full_process_count += 1
+
+            # 32비트 변환 필요시만
+            if need_bit_convert:
+                image_hdr = image_hdr.astype(np.float32)
 
             # 노출값 적용 (Laval 데이터셋의 경우 헤더에 노출 정보가 있음)
             if apply_exposure:
@@ -194,23 +273,19 @@ def prepare_laval_photometric(input_dir: str, output_dir: str,
                 'median': float(np.median(luminance))
             })
 
-            # Lanczos 리샘플링으로 리사이즈
-            if image_hdr.shape[0] != target_h or image_hdr.shape[1] != target_w:
+            # 리사이즈 필요시만
+            if need_resize:
                 image_hdr = cv2.resize(
                     image_hdr,
                     (target_w, target_h),
                     interpolation=cv2.INTER_LANCZOS4
                 )
 
-            # 출력 경로
-            rel_path = file_path.relative_to(input_dir)
-            output_path = Path(output_dir) / rel_path.with_suffix('.exr')
+            # 출력 경로 생성
             output_path.parent.mkdir(parents=True, exist_ok=True)
 
             # EXR 형식으로 저장
             imsave(str(output_path), image_hdr)
-
-            processed_count += 1
 
         except Exception as e:
             print(f"\nError processing {file_path}: {e}")
@@ -220,11 +295,26 @@ def prepare_laval_photometric(input_dir: str, output_dir: str,
     if luminance_stats:
         all_max = [s['max'] for s in luminance_stats]
         all_mean = [s['mean'] for s in luminance_stats]
-        print(f"\nLuminance Statistics (cd/m²):")
-        print(f"  Max luminance range: {min(all_max):.1f} - {max(all_max):.1f}")
-        print(f"  Mean luminance range: {min(all_mean):.1f} - {max(all_mean):.1f}")
+        print(f"\n휘도 통계 (cd/m²):")
+        print(f"  최대 휘도 범위: {min(all_max):.1f} - {max(all_max):.1f}")
+        print(f"  평균 휘도 범위: {min(all_mean):.1f} - {max(all_mean):.1f}")
 
-    print(f"\nProcessed: {processed_count}/{len(input_files)}")
+    # 전처리 결과 출력
+    processed_count = format_only_count + resize_only_count + bit_convert_only_count + full_process_count
+    print(f"\n=== 전처리 결과 ===")
+    print(f"전체 파일: {len(input_files)}개")
+    print(f"")
+    print(f"건너뜀: {skipped_count}개 (이미 {target_h}x{target_w} 32비트 EXR)")
+    print(f"포맷 변환만: {format_only_count}개 (.hdr → .exr)")
+    print(f"리사이즈만: {resize_only_count}개")
+    print(f"32비트 변환만: {bit_convert_only_count}개")
+    print(f"전체 처리: {full_process_count}개 (리사이즈 + 32비트)")
+    if failed_files:
+        print(f"실패: {len(failed_files)}개")
+        for f in failed_files[:5]:
+            print(f"  - {f}")
+        if len(failed_files) > 5:
+            print(f"  ... 외 {len(failed_files) - 5}개")
 
     return processed_count
 

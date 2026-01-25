@@ -113,7 +113,7 @@ class ConsistencyLoss(nn.Module):
     구조적 일관성 손실 (Structural Consistency Loss)
 
     Stage 2 학습 시 Stage 1 모델과의 구조적 차이를 최소화합니다.
-    LoRA를 통한 물리 보정이 구조적 지식을 파괴하는 것을 방지합니다.
+    S2R-Adapter를 통한 물리 보정이 구조적 지식을 파괴하는 것을 방지합니다.
 
     L_Consist = LPIPS(ToneMap(G_Stage1(z)), ToneMap(G_Stage2(z)))
 

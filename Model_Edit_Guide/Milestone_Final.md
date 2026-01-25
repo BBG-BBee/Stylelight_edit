@@ -11,7 +11,7 @@ ________________________________________
 ●	해상도: $512 \times 1024$ (Equirectangular) Native 출력5.
 2.2 학습 전략: 2-Stage & S2R-Adapter
 ●	Stage 1 (구조 학습): 대규모 합성 데이터(S2R-HDR)를 사용하여 일반적인 기하학적 구조 확장 능력 배양. 단, 합성 데이터의 물리적 부정확성을 고려하여 DTAM은 비활성화6.
-●	Stage 2 (물리 보정): 실측 데이터(Laval Photometric)와 **LoRA (S2R-Adapter)**를 사용하여 물리적 도메인 적응. 이때 DTAM을 활성화하여 $E_v$ 정합성 확보7777.
+●	Stage 2 (물리 보정): 실측 데이터(Laval Photometric)와 **S2R-Adapter (3-브랜치 도메인 적응 구조)**를 사용하여 물리적 도메인 적응. 이때 DTAM을 활성화하여 $E_v$ 정합성 확보7777.
 2.3 핵심 기술: DTAM 및 Full FP32
 ●	DTAM (이중 임계값 적응형 마스킹): 휘도에 따라 가중치를 차등 부여하는 손실 함수 전략.
 ○	$T_{onset} = 300 cd/m^2$ (학습 시작점), $T_{peak} = 1,000 cd/m^2$ (최대 가중치 도달점)8.
@@ -43,7 +43,7 @@ Milestone 4: Stage 2 파인튜닝 (물리적 정합성 및 DTAM 적용)
 ●	목표: Laval 실측 데이터를 통해 실제 빛의 세기와 분포($E_v$)를 학습.
 ●	주요 전략:
 ○	데이터: Laval Photometric Indoor HDR.
-○	S2R-Adapter (LoRA): Stage 1의 Generator($G$) 가중치를 **동결(Freeze)**하고, 새로운 $LoRA_{phys}$ 레이어만 학습17.
+○	S2R-Adapter: Stage 1의 Generator($G$) 가중치를 **동결(Freeze)**하고, 3-브랜치 구조(shared + transfer1 + transfer2)의 어댑터만 학습. r1=1(미세 조정), r2=128(광범위 적응)으로 구성17.
 ○	DTAM 활성화 (ON): 배치 내 각 이미지에 대해 동적 마스크 $W$ 생성 ($T_{onset}=300, T_{peak}=1000$ 적용)18.
 ○	손실 함수:
 $$\mathcal{L}_{Total} = \mathcal{L}_{Phys}(DTAM) + \lambda \mathcal{L}_{Consist} + \mathcal{L}_{GAN}$$

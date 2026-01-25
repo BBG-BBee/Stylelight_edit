@@ -1,0 +1,82 @@
+site_name: StyleLight HDR 파노라마 생성 문서
+site_url: ""
+site_description: 물리적 정합성 기반 HDR 파노라마 생성 모델 문서
+use_directory_urls: false
+
+theme:
+  name: material
+  language: ko
+  palette:
+    - scheme: default
+      primary: blue
+      accent: blue
+      toggle:
+        icon: material/brightness-7
+        name: 다크 모드로 전환
+    - scheme: slate
+      primary: blue
+      accent: blue
+      toggle:
+        icon: material/brightness-4
+        name: 라이트 모드로 전환
+  font:
+    text: Noto Sans KR
+    code: Roboto Mono
+  features:
+    - navigation.tabs
+    - navigation.tabs.sticky
+    - navigation.sections
+    - navigation.top
+    - navigation.footer
+    - navigation.indexes
+    - toc.follow
+    - search.highlight
+    - search.suggest
+    - content.code.copy
+
+plugins:
+  - offline:
+      enabled: true
+  - search:
+      lang:
+        - ko
+        - en
+
+nav:
+  - 홈: index.md
+  - 시작하기:
+    - 프로젝트 소개: getting-started/overview.md
+    - 환경 설정: getting-started/installation.md
+    - FAQ: getting-started/faq.md
+  - 학습 가이드:
+    - 학습 실행: training/guide.md
+  - 구현:
+    - 구현 계획: implementation/plan.md
+    - 구현 결과: implementation/result.md
+  - 기술 문서:
+    - DTAM 이론: technical/dtam.md
+    - 마일스톤: technical/milestones.md
+    - 통합 보고서: technical/integrated-report.md
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.arithmatex:
+      generic: true
+  - pymdownx.tabbed:
+      alternate_style: true
+  - tables
+  - toc:
+      permalink: true
+      toc_depth: 3
+
+extra_css:
+  - stylesheets/custom.css
+
+extra_javascript:
+  - javascripts/mathjax.js
+  - https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js
