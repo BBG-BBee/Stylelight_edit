@@ -21,7 +21,7 @@
 | 기술 | 설명 |
 |------|------|
 | **2-Stage 학습** | S2R-HDR(구조) → Laval(물리 보정) |
-| **S2R-Adapter** | 3-브랜치 도메인 적응 구조 (r1=1, r2=128) |
+| **S2R-Adapter** | 2-브랜치 도메인 적응 구조 (r1=1, r2=128) |
 | **DTAM** | 이중 임계값 적응형 마스킹 |
 | **Full FP32** | 높은 동적 범위를 위한 정밀도 유지 |
 
@@ -54,6 +54,7 @@
 
 | 문서 | 설명 |
 |------|------|
+| [S2R-Adapter](technical/s2r-adapter.md) | 2-브랜치 도메인 적응, 스케일 학습, TTA |
 | [DTAM 이론](technical/dtam.md) | 이중 임계값 적응형 마스킹 수식 및 원리 |
 | [마일스톤](technical/milestones.md) | 프로젝트 목표 및 단계별 정의 |
 | [통합 보고서](technical/integrated-report.md) | 이론, 아키텍처, 로드맵 통합 (Single Source of Truth) |
@@ -107,7 +108,10 @@ Stylelight_edit/
 ├── training/
 │   ├── dtam.py               # DTAM 가중치 함수
 │   ├── pu21.py               # PU21 인코딩
-│   └── s2r_adapter.py        # S2R-Adapter
+│   ├── s2r_adapter.py        # S2R-Adapter (2-브랜치, 스케일 조절, TTA 함수)
+│   ├── tta_augment.py        # TTA 증강 모듈 (ExpAug, WBAug, FlipAug, PermAug)
+│   └── coaches/
+│       └── my_coach.py       # MyCoach (train_with_tta 포함)
 ├── inference/
 │   └── validation_pipeline.py
 └── metrics/
@@ -123,5 +127,7 @@ Stylelight_edit/
 | **DTAM** | 전이 구간(300~1000 cd/m²)에 높은 학습 가중치 부여 | `training/dtam.py` |
 | **PU21** | 물리적 휘도를 지각적으로 균일한 값으로 변환 | `training/pu21.py` |
 | **S2R-Adapter** | Stage 1 구조 보존하면서 효율적인 물리 보정 | `training/s2r_adapter.py` |
+| **스케일 학습** | 파인튜닝 시 scale1, scale2 자동 최적화 | `training/s2r_adapter.py` |
+| **TTA** | 불확실성 기반 동적 스케일 조절 (선택적) | `training/tta_augment.py` |
 | **Softplus** | 비음수 물리적 휘도 출력 보장 | `training/networks.py` |
 | **Full FP32** | HDR 동적 범위 정밀하게 표현 | `train.py` |

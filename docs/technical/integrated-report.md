@@ -140,9 +140,21 @@ $$y = \text{Softplus}(x) = \ln(1 + e^x)$$
 #### Stage 2: 물리 보정
 
 - **데이터셋:** Laval Photometric Indoor HDR (색차계 보정된 1,700장 실측 데이터)
-- **S2R-Adapter:** Stage 1의 $G$ 가중치 동결, 3-브랜치 어댑터만 학습
+- **S2R-Adapter:** Stage 1의 $G$ 가중치 동결, 2-브랜치 어댑터만 학습
   - r1=1 (미세 조정)
   - r2=128 (광범위 적응)
+  - scale1, scale2: 학습 가능 파라미터로 자동 최적화
+
+#### Test-Time Adaptation (TTA) - 선택적 기능
+
+- **목적:** 새로운 도메인 데이터에 대한 추론 시 동적 적응
+- **작동 원리:**
+  - 입력에 N개 증강(ExpAug, WBAug, FlipAug, PermAug) 적용
+  - 출력들의 분산으로 불확실성 $U(x)$ 계산
+  - 스케일 동적 조절: $\alpha_1 = 1 - U(x)$, $\alpha_2 = 1 + U(x)$
+- **사용 시나리오:**
+  - Laval 파인튜닝 후: TTA **불필요** (기본 off)
+  - 새 도메인 추론 시: TTA **선택적 활성화**
 
 ### 4.2 구조적 일관성 손실 ($\mathcal{L}_{Consist}$)
 
@@ -285,12 +297,35 @@ $512 \times 1024$ 해상도의 Full FP32 학습을 위해 **NVIDIA RTX 5090**을
 
 | 기술 | 역할 |
 |------|------|
-| **S2R-Adapter** | 3-브랜치 도메인 적응으로 효율적 물리 보정 |
+| **S2R-Adapter** | 2-브랜치 도메인 적응으로 효율적 물리 보정 |
+| **스케일 학습** | 파인튜닝 시 scale1, scale2 자동 최적화 |
+| **TTA (Test-Time Adaptation)** | 불확실성 기반 동적 스케일 조절 (선택적) |
 | **구조적 일관성 손실 ($\mathcal{L}_{Consist}$)** | Stage 1 지식 보존 |
 | **Softplus 활성화 함수** | 무한 동적 범위 지원 |
 | **Full FP32 파이프라인** | 물리적 휘도 정밀도 확보 |
 | **DTAM** | 전이 구간 학습 강화 |
 | **SR 후처리** | 작은 광원 소실 방지 |
+
+### S2R-Adapter 구현 상세
+
+S2R-Adapter의 핵심 구성요소:
+
+| 구성요소 | 파일 | 설명 |
+|----------|------|------|
+| S2R-Adapter 코어 | `training/s2r_adapter.py` | 2-브랜치 어댑터, 스케일 조절 함수 |
+| TTA 증강 | `training/tta_augment.py` | ExpAug, WBAug, FlipAug, PermAug |
+| TTA 통합 | `training/coaches/my_coach.py` | `train_with_tta()` 메서드 |
+
+**스케일 조절 전략:**
+
+1. **파인튜닝 시 (Stage 2):**
+   - `make_scales_learnable()` 호출
+   - 역전파를 통해 최적 scale1, scale2 자동 학습
+
+2. **추론 시 (TTA 활성화):**
+   - 불확실성 $U(x)$ 계산
+   - $\alpha_1 = 1 - U(x)$, $\alpha_2 = 1 + U(x)$ 적용
+   - 새로운 도메인에서만 선택적 사용
 
 **기대 효과:**
 

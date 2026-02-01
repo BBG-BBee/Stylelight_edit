@@ -577,6 +577,137 @@ def make_scales_learnable(
 
 
 # ============================================================================
+# TTA: Uncertainty Calculation and Adaptive Scale
+# ============================================================================
+
+def compute_uncertainty_from_outputs(
+    outputs: List[torch.Tensor],
+    uncertainty_scale: float = 0.1,
+) -> Tuple[torch.Tensor, torch.Tensor]:
+    """
+    TTA 출력들의 분산을 이용한 불확실성 계산
+
+    S2R-HDR 원본 공식 (train_adapter_without_gt.py:259-264):
+        ps_label = torch.stack(ps_label_aug)
+        variance = torch.var(ps_label)
+        uncertainty = torch.mean(variance) * uncertainty_scale
+
+    Args:
+        outputs: Generator 출력 리스트 [원본, aug1, aug2, ...]
+                 각 출력은 (B, C, H, W) 형태
+        uncertainty_scale: 불확실성 스케일링 계수
+                          - GT 있는 경우: 0.1 (S2R-HDR 기본값)
+                          - GT 없는 경우: 0.05
+
+    Returns:
+        uncertainty: 스칼라 불확실성 값
+        variance_map: 픽셀별 분산 맵 (B, C, H, W)
+
+    Example:
+        >>> outputs = [panorama1, panorama2, panorama3, ...]  # TTA 출력들
+        >>> uncertainty, var_map = compute_uncertainty_from_outputs(outputs)
+        >>> print(f"Uncertainty: {uncertainty:.4f}")
+    """
+    # 리스트 -> 스택
+    stacked = torch.stack(outputs, dim=0)  # (N, B, C, H, W)
+
+    # 분산 계산 (증강 축 방향)
+    variance_map = torch.var(stacked, dim=0)  # (B, C, H, W)
+
+    # 평균 불확실성
+    uncertainty = torch.mean(variance_map) * uncertainty_scale
+
+    return uncertainty, variance_map
+
+
+def adaptive_scale_from_uncertainty(
+    uncertainty: Union[torch.Tensor, float],
+    base_scale1: float = 1.0,
+    base_scale2: float = 1.0,
+    clamp_range: Tuple[float, float] = (0.0, 2.0),
+) -> Tuple[float, float]:
+    """
+    불확실성 기반 동적 스케일 계산
+
+    S2R-HDR 원본 공식 (train_adapter_without_gt.py:262-268):
+        if args.adaptive_scale:
+            set_scale(model, 1 - uncertainty, 1 + uncertainty)
+
+    불확실성이 높으면:
+        - scale1 감소 → 공유 브랜치(구조) 의존도 낮춤
+        - scale2 증가 → 전송 브랜치(적응) 강화
+
+    불확실성이 낮으면:
+        - scale1 유지 → 기존 구조 유지
+        - scale2 유지 → 최소한의 적응
+
+    Args:
+        uncertainty: 불확실성 스칼라 (0~1 범위 권장)
+        base_scale1: 기본 scale1 값
+        base_scale2: 기본 scale2 값
+        clamp_range: 스케일 클램핑 범위 (min, max)
+
+    Returns:
+        scale1, scale2: 조절된 스케일 값
+
+    Example:
+        >>> uncertainty = 0.3
+        >>> scale1, scale2 = adaptive_scale_from_uncertainty(uncertainty)
+        >>> print(f"scale1={scale1:.2f}, scale2={scale2:.2f}")
+        # scale1=0.70, scale2=1.30
+    """
+    # 불확실성 값 추출
+    if isinstance(uncertainty, torch.Tensor):
+        U = uncertainty.item()
+    else:
+        U = float(uncertainty)
+
+    # S2R-HDR 원본 공식
+    scale1 = base_scale1 * (1.0 - U)
+    scale2 = base_scale2 * (1.0 + U)
+
+    # 클램핑
+    scale1 = max(clamp_range[0], min(clamp_range[1], scale1))
+    scale2 = max(clamp_range[0], min(clamp_range[1], scale2))
+
+    return scale1, scale2
+
+
+def apply_adaptive_scales(
+    generator: nn.Module,
+    uncertainty: Union[torch.Tensor, float],
+    base_scale1: float = 1.0,
+    base_scale2: float = 1.0,
+) -> Tuple[float, float]:
+    """
+    불확실성 기반 동적 스케일 계산 및 Generator에 적용
+
+    S2R-HDR 원본: set_scale(model, 1 - uncertainty, 1 + uncertainty)
+
+    Args:
+        generator: S2R-Adapter가 적용된 Generator
+        uncertainty: 불확실성 값
+        base_scale1, base_scale2: 기본 스케일 값
+
+    Returns:
+        scale1, scale2: 적용된 스케일 값
+
+    Example:
+        >>> uncertainty, _ = compute_uncertainty_from_outputs(outputs)
+        >>> scale1, scale2 = apply_adaptive_scales(G, uncertainty)
+        >>> print(f"Applied: scale1={scale1:.2f}, scale2={scale2:.2f}")
+    """
+    scale1, scale2 = adaptive_scale_from_uncertainty(
+        uncertainty, base_scale1, base_scale2
+    )
+
+    # Generator에 스케일 적용
+    set_adapter_scales(generator, scale1, scale2)
+
+    return scale1, scale2
+
+
+# ============================================================================
 # Test Functions
 # ============================================================================
 

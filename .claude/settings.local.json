@@ -31,7 +31,10 @@
       "Bash(python3:*)",
       "Bash(conda --version:*)",
       "Bash(conda run:*)",
-      "Bash(mkdocs build:*)"
+      "Bash(mkdocs build:*)",
+      "Bash(ls:*)",
+      "Bash(find:*)",
+      "Bash(~/.bashrc)"
     ]
   }
 }

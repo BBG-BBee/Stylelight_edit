@@ -11,7 +11,7 @@
       
       
       
-        <link rel="prev" href="dtam.html">
+        <link rel="prev" href="s2r-adapter.html">
       
       
         <link rel="next" href="integrated-report.html">
@@ -20,7 +20,7 @@
         
       
       
-      <link rel="icon" href="../assets/images/favicon.png">
+      <link rel="icon" href="../assets/favicon-96x96.png">
       <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.1">
     
     
@@ -760,6 +760,8 @@
       
         
       
+        
+      
     
     
     
@@ -823,6 +825,34 @@
     
   
     DTAM 이론
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="s2r-adapter.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    S2R-Adapter
   
 
     
@@ -1417,8 +1447,8 @@
 </tbody>
 </table>
 <p><strong>S2R-Adapter 구조:</strong>
-- 3-브랜치 도메인 적응 구조 (shared + transfer1 + transfer2)
-- r1=1 (미세 조정), r2=128 (광범위 적응)</p>
+- 2-브랜치 도메인 적응 구조 (공유 브랜치 + 전송 브랜치)
+- 전송 브랜치: Transfer1(r1=1) + Transfer2(r2=128)</p>
 <h3 id="23-s2r-adapter-dtam-full-fp32">2.3 핵심 기술: S2R-Adapter, DTAM 및 Full FP32<a class="headerlink" href="#23-s2r-adapter-dtam-full-fp32" title="Permanent link">&para;</a></h3>
 <table>
 <thead>
@@ -1430,7 +1460,7 @@
 <tbody>
 <tr>
 <td><strong>S2R-Adapter</strong></td>
-<td>3-브랜치 도메인 적응 구조로 Stage 1 지식 보존하면서 물리 보정 (r1=1, r2=128)</td>
+<td>2-브랜치 도메인 적응 구조로 Stage 1 지식 보존하면서 물리 보정 (r1=1, r2=128)</td>
 </tr>
 <tr>
 <td><strong>DTAM</strong></td>
@@ -1709,7 +1739,7 @@
       <nav class="md-footer__inner md-grid" aria-label="하단/푸터" >
         
           
-          <a href="dtam.html" class="md-footer__link md-footer__link--prev" aria-label="이전: DTAM 이론">
+          <a href="s2r-adapter.html" class="md-footer__link md-footer__link--prev" aria-label="이전: S2R-Adapter">
             <div class="md-footer__button md-icon">
               
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
@@ -1719,7 +1749,7 @@
                 이전
               </span>
               <div class="md-ellipsis">
-                DTAM 이론
+                S2R-Adapter
               </div>
             </div>
           </a>

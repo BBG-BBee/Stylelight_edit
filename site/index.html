@@ -18,7 +18,7 @@
         
       
       
-      <link rel="icon" href="assets/images/favicon.png">
+      <link rel="icon" href="assets/favicon-96x96.png">
       <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.1">
     
     
@@ -975,6 +975,8 @@
       
         
       
+        
+      
     
     
     
@@ -1035,6 +1037,34 @@
     
   
     DTAM 이론
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="technical/s2r-adapter.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    S2R-Adapter
   
 
     
@@ -1373,7 +1403,7 @@
 </tr>
 <tr>
 <td><strong>S2R-Adapter</strong></td>
-<td>3-브랜치 도메인 적응 구조 (r1=1, r2=128)</td>
+<td>2-브랜치 도메인 적응 구조 (r1=1, r2=128)</td>
 </tr>
 <tr>
 <td><strong>DTAM</strong></td>
@@ -1454,6 +1484,10 @@
 </thead>
 <tbody>
 <tr>
+<td><a href="technical/s2r-adapter.html">S2R-Adapter</a></td>
+<td>2-브랜치 도메인 적응, 스케일 학습, TTA</td>
+</tr>
+<tr>
 <td><a href="technical/dtam.html">DTAM 이론</a></td>
 <td>이중 임계값 적응형 마스킹 수식 및 원리</td>
 </tr>
@@ -1502,11 +1536,14 @@
 <a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>├── training/
 <a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>│   ├── dtam.py               # DTAM 가중치 함수
 <a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>│   ├── pu21.py               # PU21 인코딩
-<a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>│   └── s2r_adapter.py        # S2R-Adapter
-<a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a>├── inference/
-<a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a>│   └── validation_pipeline.py
-<a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a>└── metrics/
-<a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a>    └── physical_metrics.py   # 물리적 평가 메트릭
+<a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>│   ├── s2r_adapter.py        # S2R-Adapter (2-브랜치, 스케일 조절, TTA 함수)
+<a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a>│   ├── tta_augment.py        # TTA 증강 모듈 (ExpAug, WBAug, FlipAug, PermAug)
+<a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a>│   └── coaches/
+<a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a>│       └── my_coach.py       # MyCoach (train_with_tta 포함)
+<a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a>├── inference/
+<a id="__codelineno-3-12" name="__codelineno-3-12" href="#__codelineno-3-12"></a>│   └── validation_pipeline.py
+<a id="__codelineno-3-13" name="__codelineno-3-13" href="#__codelineno-3-13"></a>└── metrics/
+<a id="__codelineno-3-14" name="__codelineno-3-14" href="#__codelineno-3-14"></a>    └── physical_metrics.py   # 물리적 평가 메트릭
 </code></pre></div>
 <hr />
 <h2 id="_11">핵심 기술 요약<a class="headerlink" href="#_11" title="Permanent link">&para;</a></h2>
@@ -1533,6 +1570,16 @@
 <td><strong>S2R-Adapter</strong></td>
 <td>Stage 1 구조 보존하면서 효율적인 물리 보정</td>
 <td><code>training/s2r_adapter.py</code></td>
+</tr>
+<tr>
+<td><strong>스케일 학습</strong></td>
+<td>파인튜닝 시 scale1, scale2 자동 최적화</td>
+<td><code>training/s2r_adapter.py</code></td>
+</tr>
+<tr>
+<td><strong>TTA</strong></td>
+<td>불확실성 기반 동적 스케일 조절 (선택적)</td>
+<td><code>training/tta_augment.py</code></td>
 </tr>
 <tr>
 <td><strong>Softplus</strong></td>

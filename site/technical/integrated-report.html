@@ -18,7 +18,7 @@
         
       
       
-      <link rel="icon" href="../assets/images/favicon.png">
+      <link rel="icon" href="../assets/favicon-96x96.png">
       <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.1">
     
     
@@ -758,6 +758,8 @@
       
         
       
+        
+      
     
     
     
@@ -821,6 +823,34 @@
     
   
     DTAM 이론
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="s2r-adapter.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    S2R-Adapter
   
 
     
@@ -1304,6 +1334,23 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="9. 결론 및 기대 효과">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#s2r-adapter" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        S2R-Adapter 구현 상세
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
     </ul>
@@ -1724,6 +1771,23 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="9. 결론 및 기대 효과">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#s2r-adapter" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        S2R-Adapter 구현 상세
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
     </ul>
@@ -1968,9 +2032,21 @@
 <h4 id="stage-2">Stage 2: 물리 보정<a class="headerlink" href="#stage-2" title="Permanent link">&para;</a></h4>
 <ul>
 <li><strong>데이터셋:</strong> Laval Photometric Indoor HDR (색차계 보정된 1,700장 실측 데이터)</li>
-<li><strong>S2R-Adapter:</strong> Stage 1의 <span class="arithmatex">\(G\)</span> 가중치 동결, 3-브랜치 어댑터만 학습</li>
+<li><strong>S2R-Adapter:</strong> Stage 1의 <span class="arithmatex">\(G\)</span> 가중치 동결, 2-브랜치 어댑터만 학습</li>
 <li>r1=1 (미세 조정)</li>
 <li>r2=128 (광범위 적응)</li>
+<li>scale1, scale2: 학습 가능 파라미터로 자동 최적화</li>
+</ul>
+<h4 id="test-time-adaptation-tta-">Test-Time Adaptation (TTA) - 선택적 기능<a class="headerlink" href="#test-time-adaptation-tta-" title="Permanent link">&para;</a></h4>
+<ul>
+<li><strong>목적:</strong> 새로운 도메인 데이터에 대한 추론 시 동적 적응</li>
+<li><strong>작동 원리:</strong></li>
+<li>입력에 N개 증강(ExpAug, WBAug, FlipAug, PermAug) 적용</li>
+<li>출력들의 분산으로 불확실성 <span class="arithmatex">\(U(x)\)</span> 계산</li>
+<li>스케일 동적 조절: <span class="arithmatex">\(\alpha_1 = 1 - U(x)\)</span>, <span class="arithmatex">\(\alpha_2 = 1 + U(x)\)</span></li>
+<li><strong>사용 시나리오:</strong></li>
+<li>Laval 파인튜닝 후: TTA <strong>불필요</strong> (기본 off)</li>
+<li>새 도메인 추론 시: TTA <strong>선택적 활성화</strong></li>
 </ul>
 <h3 id="42-mathcall_consist">4.2 구조적 일관성 손실 (<span class="arithmatex">\(\mathcal{L}_{Consist}\)</span>)<a class="headerlink" href="#42-mathcall_consist" title="Permanent link">&para;</a></h3>
 <p>Stage 2에서 Laval 데이터에 과적합되어 Stage 1의 구조 지식이 무너지는 것을 방지한다.</p>
@@ -2231,7 +2307,15 @@
 <tbody>
 <tr>
 <td><strong>S2R-Adapter</strong></td>
-<td>3-브랜치 도메인 적응으로 효율적 물리 보정</td>
+<td>2-브랜치 도메인 적응으로 효율적 물리 보정</td>
+</tr>
+<tr>
+<td><strong>스케일 학습</strong></td>
+<td>파인튜닝 시 scale1, scale2 자동 최적화</td>
+</tr>
+<tr>
+<td><strong>TTA (Test-Time Adaptation)</strong></td>
+<td>불확실성 기반 동적 스케일 조절 (선택적)</td>
 </tr>
 <tr>
 <td><strong>구조적 일관성 손실 (<span class="arithmatex">\(\mathcal{L}_{Consist}\)</span>)</strong></td>
@@ -2255,6 +2339,48 @@
 </tr>
 </tbody>
 </table>
+<h3 id="s2r-adapter">S2R-Adapter 구현 상세<a class="headerlink" href="#s2r-adapter" title="Permanent link">&para;</a></h3>
+<p>S2R-Adapter의 핵심 구성요소:</p>
+<table>
+<thead>
+<tr>
+<th>구성요소</th>
+<th>파일</th>
+<th>설명</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>S2R-Adapter 코어</td>
+<td><code>training/s2r_adapter.py</code></td>
+<td>2-브랜치 어댑터, 스케일 조절 함수</td>
+</tr>
+<tr>
+<td>TTA 증강</td>
+<td><code>training/tta_augment.py</code></td>
+<td>ExpAug, WBAug, FlipAug, PermAug</td>
+</tr>
+<tr>
+<td>TTA 통합</td>
+<td><code>training/coaches/my_coach.py</code></td>
+<td><code>train_with_tta()</code> 메서드</td>
+</tr>
+</tbody>
+</table>
+<p><strong>스케일 조절 전략:</strong></p>
+<ol>
+<li><strong>파인튜닝 시 (Stage 2):</strong></li>
+<li><code>make_scales_learnable()</code> 호출</li>
+<li>
+<p>역전파를 통해 최적 scale1, scale2 자동 학습</p>
+</li>
+<li>
+<p><strong>추론 시 (TTA 활성화):</strong></p>
+</li>
+<li>불확실성 <span class="arithmatex">\(U(x)\)</span> 계산</li>
+<li><span class="arithmatex">\(\alpha_1 = 1 - U(x)\)</span>, <span class="arithmatex">\(\alpha_2 = 1 + U(x)\)</span> 적용</li>
+<li>새로운 도메인에서만 선택적 사용</li>
+</ol>
 <p><strong>기대 효과:</strong></p>
 <p>RTX 5090 기반 Full FP32 연산과 SR 후처리 파이프라인의 결합은 물리적 휘도 정보의 손실을 극소화하여, <strong>23mm 협각 사진 한 장만으로도 신뢰할 수 있는 수준의 조명 시뮬레이션</strong>을 가능하게 할 것이다.</p>
 <p>이는 건축 및 조명 설계 분야에서 고가의 장비 없이도 정밀한 환경 분석을 수행할 수 있는 혁신적인 도구가 될 것이다.</p>

@@ -20,7 +20,7 @@
         
       
       
-      <link rel="icon" href="../assets/images/favicon.png">
+      <link rel="icon" href="../assets/favicon-96x96.png">
       <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.1">
     
     
@@ -976,6 +976,8 @@
       
         
       
+        
+      
     
     
     
@@ -1036,6 +1038,34 @@
     
   
     DTAM 이론
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../technical/s2r-adapter.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    S2R-Adapter
   
 
     
@@ -1378,13 +1408,16 @@
 <p>인간 시각 시스템은 휘도를 로그 스케일로 인지합니다. PU21은 물리적 휘도를 지각적으로 균일한 값으로 변환하여, 손실 함수가 인간 시각 특성에 맞게 오차를 측정하도록 합니다.</p>
 <p>간단 모드(simple)와 전체 모드(full)를 지원합니다. 간단 모드는 세 개의 파라미터(a, b, c)를 사용하는 단순한 변환이고, 전체 모드는 더 정확한 변환을 제공합니다. 역변환 함수도 구현되어 있어 PU21 값을 다시 휘도로 변환할 수 있습니다.</p>
 <h4 id="trainings2r_adapterpy">training/s2r_adapter.py<a class="headerlink" href="#trainings2r_adapterpy" title="Permanent link">&para;</a></h4>
-<p>S2R-Adapter (Sim-to-Real Adapter)를 구현합니다. S2R-HDR 논문의 3-브랜치 도메인 적응 구조입니다.</p>
-<p>Stage 2 학습에서는 Stage 1의 구조적 지식을 보존하면서 물리적 보정만 수행해야 합니다. S2R-Adapter는 3-브랜치 구조로 효율적인 도메인 적응을 달성합니다:
-- <strong>Shared branch</strong>: 원본 가중치 (동결)
-- <strong>Transfer1 (r1=1)</strong>: 빠른 도메인 적응
-- <strong>Transfer2 (r2=128)</strong>: 상세 물리 특성 학습</p>
-<p><code>S2RAdapterLinear</code> 클래스는 Linear 레이어용, <code>S2RAdapterFullyConnected</code> 클래스는 StyleGAN2의 FullyConnectedLayer용입니다. 두 클래스 모두 원본 레이어를 래핑하고, scale1/scale2로 도메인 유사도에 따른 비율을 동적으로 조절합니다.</p>
-<p><code>apply_s2r_adapter_to_generator</code> 함수는 Generator의 affine 레이어에 S2R-Adapter를 자동으로 적용합니다. 3-브랜치 구조로 전체 파라미터의 약 7-8%만 학습하면서도 효과적인 보정이 가능합니다.</p>
+<p>S2R-Adapter (Sim-to-Real Adapter)를 구현합니다. S2R-HDR 논문의 2-브랜치 도메인 적응 구조입니다.</p>
+<p>Stage 2 학습에서는 Stage 1의 구조적 지식을 보존하면서 물리적 보정만 수행해야 합니다. S2R-Adapter는 2-브랜치 구조로 효율적인 도메인 적응을 달성합니다:</p>
+<p><strong>공유 브랜치 (Share Branch)</strong>: 원본 가중치 동결 (Stage 1 지식 보존)</p>
+<p><strong>전송 브랜치 (Transfer Branch)</strong>:</p>
+<ul>
+<li>Transfer1 (r1=1): 전역적 도메인 이동</li>
+<li>Transfer2 (r2=128): 세밀한 도메인 적응</li>
+</ul>
+<p><code>S2RAdapterLinear</code> 클래스는 Linear 레이어용, <code>S2RAdapterFullyConnected</code> 클래스는 StyleGAN2의 FullyConnectedLayer용입니다. 두 클래스 모두 원본 레이어를 래핑하고, scale1/scale2로 전송 브랜치의 기여도를 조절합니다.</p>
+<p><code>apply_s2r_adapter_to_generator</code> 함수는 Generator의 affine 레이어에 S2R-Adapter를 자동으로 적용합니다. 2-브랜치 구조로 전체 파라미터의 약 7-8%만 학습하면서도 효과적인 보정이 가능합니다.</p>
 <p>학습 완료 후 <code>merge_adapter_weights</code> 함수로 어댑터 가중치를 원본에 병합하면, 추론 시 추가 연산 없이 사용할 수 있습니다.</p>
 <hr />
 <h3 id="33-phase-4">3.3 Phase 4: 학습 스크립트<a class="headerlink" href="#33-phase-4" title="Permanent link">&para;</a></h3>
@@ -1436,7 +1469,7 @@
 <a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>│   ├── loss.py                       [수정] Physical/Consistency Loss 추가
 <a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>│   ├── dtam.py                       [신규] DTAM 가중치 함수
 <a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>│   ├── pu21.py                       [신규] PU21 인코딩
-<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>│   └── s2r_adapter.py                [신규] S2R-Adapter (3-브랜치 도메인 적응)
+<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>│   └── s2r_adapter.py                [신규] S2R-Adapter (2-브랜치 도메인 적응)
 <a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>│
 <a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>├── inference/
 <a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a>│   ├── __init__.py                   [신규]
@@ -1473,7 +1506,7 @@
 </tr>
 <tr>
 <td><strong>S2R-Adapter</strong></td>
-<td>Stage 1 구조 보존하면서 효율적인 물리 보정 (3-브랜치)</td>
+<td>Stage 1 구조 보존하면서 효율적인 물리 보정 (2-브랜치)</td>
 <td>training/s2r_adapter.py</td>
 </tr>
 <tr>

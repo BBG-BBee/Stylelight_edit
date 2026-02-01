@@ -103,16 +103,20 @@ PU21(Perceptually Uniform 2021) 인코딩을 구현합니다.
 
 #### training/s2r_adapter.py
 
-S2R-Adapter (Sim-to-Real Adapter)를 구현합니다. S2R-HDR 논문의 3-브랜치 도메인 적응 구조입니다.
+S2R-Adapter (Sim-to-Real Adapter)를 구현합니다. S2R-HDR 논문의 2-브랜치 도메인 적응 구조입니다.
 
-Stage 2 학습에서는 Stage 1의 구조적 지식을 보존하면서 물리적 보정만 수행해야 합니다. S2R-Adapter는 3-브랜치 구조로 효율적인 도메인 적응을 달성합니다:
-- **Shared branch**: 원본 가중치 (동결)
-- **Transfer1 (r1=1)**: 빠른 도메인 적응
-- **Transfer2 (r2=128)**: 상세 물리 특성 학습
+Stage 2 학습에서는 Stage 1의 구조적 지식을 보존하면서 물리적 보정만 수행해야 합니다. S2R-Adapter는 2-브랜치 구조로 효율적인 도메인 적응을 달성합니다:
 
-`S2RAdapterLinear` 클래스는 Linear 레이어용, `S2RAdapterFullyConnected` 클래스는 StyleGAN2의 FullyConnectedLayer용입니다. 두 클래스 모두 원본 레이어를 래핑하고, scale1/scale2로 도메인 유사도에 따른 비율을 동적으로 조절합니다.
+**공유 브랜치 (Share Branch)**: 원본 가중치 동결 (Stage 1 지식 보존)
 
-`apply_s2r_adapter_to_generator` 함수는 Generator의 affine 레이어에 S2R-Adapter를 자동으로 적용합니다. 3-브랜치 구조로 전체 파라미터의 약 7-8%만 학습하면서도 효과적인 보정이 가능합니다.
+**전송 브랜치 (Transfer Branch)**:
+
+- Transfer1 (r1=1): 전역적 도메인 이동
+- Transfer2 (r2=128): 세밀한 도메인 적응
+
+`S2RAdapterLinear` 클래스는 Linear 레이어용, `S2RAdapterFullyConnected` 클래스는 StyleGAN2의 FullyConnectedLayer용입니다. 두 클래스 모두 원본 레이어를 래핑하고, scale1/scale2로 전송 브랜치의 기여도를 조절합니다.
+
+`apply_s2r_adapter_to_generator` 함수는 Generator의 affine 레이어에 S2R-Adapter를 자동으로 적용합니다. 2-브랜치 구조로 전체 파라미터의 약 7-8%만 학습하면서도 효과적인 보정이 가능합니다.
 
 학습 완료 후 `merge_adapter_weights` 함수로 어댑터 가중치를 원본에 병합하면, 추론 시 추가 연산 없이 사용할 수 있습니다.
 
@@ -198,7 +202,7 @@ Stylelight_edit/
 │   ├── loss.py                       [수정] Physical/Consistency Loss 추가
 │   ├── dtam.py                       [신규] DTAM 가중치 함수
 │   ├── pu21.py                       [신규] PU21 인코딩
-│   └── s2r_adapter.py                [신규] S2R-Adapter (3-브랜치 도메인 적응)
+│   └── s2r_adapter.py                [신규] S2R-Adapter (2-브랜치 도메인 적응)
 │
 ├── inference/
 │   ├── __init__.py                   [신규]
@@ -221,7 +225,7 @@ Stylelight_edit/
 |------|------|-----------|
 | **DTAM** | 전이 구간(300~1000 cd/m²)에 높은 학습 가중치 부여 | training/dtam.py |
 | **PU21** | 물리적 휘도를 지각적으로 균일한 값으로 변환 | training/pu21.py |
-| **S2R-Adapter** | Stage 1 구조 보존하면서 효율적인 물리 보정 (3-브랜치) | training/s2r_adapter.py |
+| **S2R-Adapter** | Stage 1 구조 보존하면서 효율적인 물리 보정 (2-브랜치) | training/s2r_adapter.py |
 | **Softplus** | 비음수 물리적 휘도 출력 보장 | training/networks.py |
 | **Full FP32** | HDR 동적 범위 정밀하게 표현 | train.py |
 

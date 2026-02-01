@@ -36,14 +36,14 @@
 | **Stage 2** | Laval Photometric (실측) | 물리적 도메인 적응 | ON |
 
 **S2R-Adapter 구조:**
-- 3-브랜치 도메인 적응 구조 (shared + transfer1 + transfer2)
-- r1=1 (미세 조정), r2=128 (광범위 적응)
+- 2-브랜치 도메인 적응 구조 (공유 브랜치 + 전송 브랜치)
+- 전송 브랜치: Transfer1(r1=1) + Transfer2(r2=128)
 
 ### 2.3 핵심 기술: S2R-Adapter, DTAM 및 Full FP32
 
 | 기술 | 설명 |
 |------|------|
-| **S2R-Adapter** | 3-브랜치 도메인 적응 구조로 Stage 1 지식 보존하면서 물리 보정 (r1=1, r2=128) |
+| **S2R-Adapter** | 2-브랜치 도메인 적응 구조로 Stage 1 지식 보존하면서 물리 보정 (r1=1, r2=128) |
 | **DTAM** | 휘도에 따라 가중치를 차등 부여. $T_{onset}=300$, $T_{peak}=1,000$ $cd/m^2$ |
 | **Full FP32** | RTX 5090 (32GB+ VRAM) 환경에서 모든 연산을 float32로 강제 |
 

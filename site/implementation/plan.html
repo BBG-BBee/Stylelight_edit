@@ -20,7 +20,7 @@
         
       
       
-      <link rel="icon" href="../assets/images/favicon.png">
+      <link rel="icon" href="../assets/favicon-96x96.png">
       <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.1">
     
     
@@ -1115,6 +1115,8 @@
       
         
       
+        
+      
     
     
     
@@ -1175,6 +1177,34 @@
     
   
     DTAM 이론
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../technical/s2r-adapter.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    S2R-Adapter
   
 
     
@@ -1630,7 +1660,7 @@
 <li><strong>Stage 1</strong>: 합성 데이터(S2R-HDR)로 파노라마의 구조적 특징을 학습</li>
 <li><strong>Stage 2</strong>: 실측 데이터(Laval)로 물리적 휘도 정합성을 보정</li>
 </ul>
-<p>Stage 2에서는 Stage 1의 구조적 지식을 보존하기 위해 S2R-Adapter(Sim-to-Real Adapter)를 사용합니다. 원본 가중치는 동결하고, 3-브랜치 구조(shared + r1=1 + r2=128)로 효율적인 도메인 적응을 수행합니다. scale1, scale2 파라미터로 도메인 유사도에 따른 비율을 동적으로 조절할 수 있습니다.</p>
+<p>Stage 2에서는 Stage 1의 구조적 지식을 보존하기 위해 S2R-Adapter(Sim-to-Real Adapter)를 사용합니다. 원본 가중치는 동결하고, 2-브랜치 구조(공유 브랜치 + 전송 브랜치)로 효율적인 도메인 적응을 수행합니다. 전송 브랜치는 Transfer1(r1=1)과 Transfer2(r2=128)로 구성되며, scale1, scale2 파라미터로 각 전송 브랜치의 기여도를 조절할 수 있습니다.</p>
 <hr />
 <h2 id="3">3. 마일스톤별 구현 계획<a class="headerlink" href="#3" title="Permanent link">&para;</a></h2>
 <h3 id="m1">M1: 인프라 구축 및 데이터 파이프라인<a class="headerlink" href="#m1" title="Permanent link">&para;</a></h3>
@@ -1668,11 +1698,19 @@
 <h4 id="_4">물리 손실 함수<a class="headerlink" href="#_4" title="Permanent link">&para;</a></h4>
 <p>물리 손실(L_phys)은 DTAM 가중치와 PU21 인코딩을 결합합니다. 예측 휘도와 정답 휘도를 각각 PU21로 인코딩한 후, DTAM 가중치를 곱한 L1 손실을 계산합니다.</p>
 <h4 id="s2r-adapter">S2R-Adapter 구현<a class="headerlink" href="#s2r-adapter" title="Permanent link">&para;</a></h4>
-<p>Stage 1에서 학습된 구조적 지식을 보존하면서 물리적 보정을 수행하기 위해 S2R-Adapter를 사용합니다. 원본 레이어의 가중치는 동결하고, 3-브랜치 구조(shared + transfer1 + transfer2)만 학습합니다:
-- <strong>Transfer1 (r1=1)</strong>: 빠른 도메인 적응
-- <strong>Transfer2 (r2=128)</strong>: 상세 물리 특성 학습
-- <strong>scale1, scale2</strong>: 도메인 유사도에 따른 비율 동적 조절</p>
-<p>3-브랜치 구조로 전체 파라미터의 약 7-8%만 학습하면서도 효과적인 보정이 가능합니다.</p>
+<p>Stage 1에서 학습된 구조적 지식을 보존하면서 물리적 보정을 수행하기 위해 S2R-Adapter를 사용합니다. 원본 레이어의 가중치는 동결하고, 2-브랜치 구조(공유 + 전송)의 전송 브랜치만 학습합니다:</p>
+<p><strong>공유 브랜치</strong>: 원본 가중치 동결 (Stage 1 지식 보존)</p>
+<p><strong>전송 브랜치</strong>:</p>
+<ul>
+<li>Transfer1 (r1=1): 전역적 도메인 이동</li>
+<li>Transfer2 (r2=128): 세밀한 도메인 적응</li>
+</ul>
+<p><strong>스케일링 계수 (scale1, scale2)</strong>:</p>
+<ul>
+<li>일반 모드: 고정값 또는 학습 가능 파라미터</li>
+<li>TTA 모드: 입력 불확실성에 따라 동적 조절 (선택적)</li>
+</ul>
+<p>2-브랜치 구조로 전체 파라미터의 약 7-8%만 학습하면서도 효과적인 보정이 가능합니다.</p>
 <h4 id="_5">일관성 손실<a class="headerlink" href="#_5" title="Permanent link">&para;</a></h4>
 <p>Stage 2 학습 중 구조가 과도하게 변형되는 것을 방지하기 위해 일관성 손실(L_consist)을 추가합니다. Stage 1 모델과 Stage 2 모델의 출력을 톤매핑한 후 LPIPS로 비교합니다.</p>
 <hr />
@@ -1744,7 +1782,7 @@
 </tr>
 <tr>
 <td><code>training/s2r_adapter.py</code></td>
-<td>S2R-Adapter (3-브랜치 도메인 적응)</td>
+<td>S2R-Adapter (2-브랜치 도메인 적응)</td>
 </tr>
 <tr>
 <td><code>train_stage1.py</code></td>
