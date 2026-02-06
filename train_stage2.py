@@ -73,8 +73,21 @@ def load_stage1_checkpoint(checkpoint_path: str, device='cuda'):
     """
     print(f'Stage 1 체크포인트 로드 중: {checkpoint_path}')
 
+    # 파일 존재 확인
+    if not os.path.exists(checkpoint_path):
+        raise FileNotFoundError(f'Stage 1 체크포인트를 찾을 수 없습니다: {checkpoint_path}')
+
     with open(checkpoint_path, 'rb') as f:
         data = pickle.load(f)
+
+    # G_ema 키 검증
+    if 'G_ema' not in data:
+        available_keys = list(data.keys())
+        raise KeyError(
+            f"Stage 1 체크포인트에 'G_ema' 키가 없습니다. "
+            f"사용 가능한 키: {available_keys}. "
+            f"올바른 Stage 1 체크포인트 파일인지 확인하세요."
+        )
 
     G_stage1 = data['G_ema'].to(device)
     D_stage1 = data['D'].to(device) if 'D' in data else None

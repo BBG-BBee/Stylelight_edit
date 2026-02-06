@@ -37,10 +37,12 @@ conda install pytorch==2.1.0 torchvision==0.16.0 torchaudio==2.1.0 pytorch-cuda=
 
 # 필수 패키지
 pip install lpips wandb matplotlib dlib imageio einops
-pip install imageio-ffmpeg ninja opencv-python
+pip install imageio-ffmpeg ninja opencv-python scikit-image
+pip install click psutil scipy requests tqdm tensorboard
+pip install skylibs colour-science
 
 # OpenEXR (Linux: sudo apt-get install openexr libopenexr-dev 먼저 실행)
-pip install OpenEXR
+pip install OpenEXR pyexr
 ```
 
 ### Linux/WSL2 추가 설치 (CUDA 커널 JIT 컴파일용)

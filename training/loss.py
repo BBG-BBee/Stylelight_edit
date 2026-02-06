@@ -118,51 +118,75 @@ class ConsistencyLoss(nn.Module):
     L_Consist = LPIPS(ToneMap(G_Stage1(z)), ToneMap(G_Stage2(z)))
 
     Args:
+        stage1_generator: Stage 1 Generator (참조용, forward에서는 사용하지 않음)
+        use_lpips: LPIPS 사용 여부 (True면 필수, 미설치 시 오류)
+        use_tonemap: 톤맵 사용 여부
+        tonemap_method: 톤맵 방식 ('gamma', 'reinhard')
         lpips_net: LPIPS 네트워크 타입 ('alex', 'vgg', 'squeeze')
         tonemap_gamma: 톤맵 감마값
     """
 
     def __init__(self,
+                 stage1_generator: Optional[nn.Module] = None,
+                 use_lpips: bool = True,
+                 use_tonemap: bool = True,
+                 tonemap_method: str = 'reinhard',
                  lpips_net: str = 'alex',
                  tonemap_gamma: float = 2.4):
         super().__init__()
 
-        # LPIPS 손실 (lazy import)
-        try:
-            import lpips
-            self.lpips = lpips.LPIPS(net=lpips_net)
-            self.lpips.eval()
-            for param in self.lpips.parameters():
-                param.requires_grad = False
-        except ImportError:
-            print("Warning: lpips not installed. Using L1 loss as fallback.")
-            self.lpips = None
-
+        self.stage1_generator = stage1_generator
+        self.use_lpips = use_lpips
+        self.use_tonemap = use_tonemap
+        self.tonemap_method = tonemap_method
         self.tonemap_gamma = tonemap_gamma
 
-    def tonemap(self, hdr_image: torch.Tensor, gamma: Optional[float] = None) -> torch.Tensor:
+        # LPIPS 손실
+        if use_lpips:
+            try:
+                import lpips
+                self.lpips = lpips.LPIPS(net=lpips_net)
+                self.lpips.eval()
+                for param in self.lpips.parameters():
+                    param.requires_grad = False
+            except ImportError:
+                raise ImportError(
+                    "LPIPS is required for ConsistencyLoss but not installed. "
+                    "Install with: pip install lpips"
+                )
+        else:
+            self.lpips = None
+
+    def tonemap(self, hdr_image: torch.Tensor) -> torch.Tensor:
         """
         HDR 이미지를 LDR로 톤매핑 (LPIPS 비교용)
 
-        간단한 감마 톤매핑 사용 (Reinhard 등 복잡한 방식 대신)
-        """
-        if gamma is None:
-            gamma = self.tonemap_gamma
+        Args:
+            hdr_image: HDR 이미지 (B, C, H, W)
 
+        Returns:
+            tonemapped: [-1, 1] 범위의 톤매핑된 이미지
+        """
         # 음수 방지
         hdr_image = torch.clamp(hdr_image, min=1e-6)
 
-        # 감마 톤매핑 + 정규화
-        # percentile 기반 정규화
-        flat = hdr_image.view(hdr_image.shape[0], -1)
-        percentile_95 = torch.quantile(flat, 0.95, dim=1, keepdim=True)
-        percentile_95 = percentile_95.view(-1, 1, 1, 1).clamp(min=1.0)
+        if self.tonemap_method == 'reinhard':
+            # Reinhard 톤매핑: L / (1 + L)
+            tonemapped = hdr_image / (1 + hdr_image)
+            # [0, 1] -> [-1, 1]
+            return tonemapped * 2 - 1
+        else:
+            # 감마 톤매핑 (기본)
+            # percentile 기반 정규화
+            flat = hdr_image.view(hdr_image.shape[0], -1)
+            percentile_95 = torch.quantile(flat, 0.95, dim=1, keepdim=True)
+            percentile_95 = percentile_95.view(-1, 1, 1, 1).clamp(min=1.0)
 
-        normalized = hdr_image / percentile_95
-        tonemapped = torch.pow(normalized.clamp(0, 1), 1.0 / gamma)
+            normalized = hdr_image / percentile_95
+            tonemapped = torch.pow(normalized.clamp(0, 1), 1.0 / self.tonemap_gamma)
 
-        # [-1, 1] 범위로 변환 (LPIPS 입력 형식)
-        return tonemapped * 2 - 1
+            # [-1, 1] 범위로 변환 (LPIPS 입력 형식)
+            return tonemapped * 2 - 1
 
     def forward(self,
                 stage1_output: torch.Tensor,
@@ -177,9 +201,14 @@ class ConsistencyLoss(nn.Module):
         Returns:
             loss: LPIPS 또는 L1 손실
         """
-        # 톤매핑 적용
-        stage1_tm = self.tonemap(stage1_output)
-        stage2_tm = self.tonemap(stage2_output)
+        # 톤매핑 적용 (use_tonemap이 True인 경우)
+        if self.use_tonemap:
+            stage1_tm = self.tonemap(stage1_output)
+            stage2_tm = self.tonemap(stage2_output)
+        else:
+            # 톤매핑 없이 직접 비교 ([-1, 1] 범위로 클램핑)
+            stage1_tm = torch.clamp(stage1_output, -1, 1)
+            stage2_tm = torch.clamp(stage2_output, -1, 1)
 
         if self.lpips is not None:
             # LPIPS 손실
@@ -187,7 +216,7 @@ class ConsistencyLoss(nn.Module):
             loss = self.lpips(stage1_tm, stage2_tm)
             return loss.mean()
         else:
-            # Fallback: L1 손실
+            # use_lpips=False인 경우 L1 손실
             return F.l1_loss(stage1_tm, stage2_tm)
 
     def to(self, device):
@@ -208,32 +237,23 @@ class CombinedPhysicalLoss(nn.Module):
     L_GAN은 StyleGAN2Loss에서 처리됩니다.
 
     Args:
-        phys_weight: 물리적 손실 가중치
-        consist_weight: 일관성 손실 가중치
-        **phys_kwargs: PhysicalLoss 파라미터
-        **consist_kwargs: ConsistencyLoss 파라미터
+        physical_loss: PhysicalLoss 객체
+        consistency_loss: ConsistencyLoss 객체
+        lambda_consist: 일관성 손실 가중치 (기본값: 0.5)
+        phys_weight: 물리적 손실 가중치 (기본값: 1.0)
     """
 
     def __init__(self,
-                 phys_weight: float = 1.0,
-                 consist_weight: float = 0.5,
-                 T_onset: float = 300.0,
-                 T_peak: float = 1000.0,
-                 alpha: float = 9.0,
-                 gamma: float = 2.0,
-                 lpips_net: str = 'alex'):
+                 physical_loss: PhysicalLoss,
+                 consistency_loss: ConsistencyLoss,
+                 lambda_consist: float = 0.5,
+                 phys_weight: float = 1.0):
         super().__init__()
 
+        self.physical_loss = physical_loss
+        self.consistency_loss = consistency_loss
         self.phys_weight = phys_weight
-        self.consist_weight = consist_weight
-
-        self.physical_loss = PhysicalLoss(
-            T_onset=T_onset,
-            T_peak=T_peak,
-            alpha=alpha,
-            gamma=gamma
-        )
-        self.consistency_loss = ConsistencyLoss(lpips_net=lpips_net)
+        self.consist_weight = lambda_consist
 
     def forward(self,
                 pred_rgb: torch.Tensor,
@@ -337,9 +357,20 @@ class StyleGAN2Loss(Loss):
     def run_D_hdr(self, img, c, sync, isRealImage=False):
         """
         HDR 이미지를 위한 판별자(Discriminator)를 실행합니다.
+
+        현재 프로젝트는 HDR→HDR 변환이므로 3채널 HDR만 사용합니다.
+        기존 6채널(LDR+HDR) 데이터셋과의 호환성을 위해 채널 수를 확인합니다.
         """
         if isRealImage:
-            img = img[:,3:,:,:]  #(ldr,hdr) ######## run_D와 차이점
+            num_channels = img.shape[1]
+            if num_channels == 6:
+                # 기존 방식: 6채널에서 HDR 부분(채널 3-5) 추출
+                img = img[:, 3:, :, :]
+            elif num_channels == 3:
+                # 현재 프로젝트: 3채널 HDR 전체 사용
+                pass  # img 그대로 사용
+            else:
+                raise ValueError(f"예상치 못한 채널 수: {num_channels}. 3 또는 6이어야 합니다.")
         if self.augment_pipe is not None:
             img = self.augment_pipe(img, isRealImage=isRealImage)
         with misc.ddp_sync(self.D_, sync):
@@ -356,25 +387,25 @@ class StyleGAN2Loss(Loss):
         # assert phase in ['Gmain', 'Greg', 'Gboth', 'Dmain', 'Dreg', 'Dboth']
         assert phase in ['Gmain', 'Greg', 'Gboth', 'Dmain', 'Dreg', 'Dboth', 'D_main', 'D_reg', 'D_both']
         do_Gmain = (phase in ['Gmain', 'Gboth'])
-        do_Dmain = (phase in ['Dmain', 'Dboth'])
+        # LDR 판별자(D) 비활성화 - 현재 프로젝트는 HDR→HDR 변환이므로 HDR 판별자(D_)만 사용
+        do_Dmain = False  # (phase in ['Dmain', 'Dboth'])
         do_Dmain_ = (phase in ['D_main', 'D_both'])
         do_Gpl   = (phase in ['Greg', 'Gboth']) and (self.pl_weight != 0)
-        do_Dr1   = (phase in ['Dreg', 'Dboth']) and (self.r1_gamma != 0)
+        do_Dr1   = False  # (phase in ['Dreg', 'Dboth']) and (self.r1_gamma != 0)
         do_Dr1_   = (phase in ['D_reg', 'D_both']) and (self.r1_gamma != 0)
 
         # Gmain: 생성된 이미지에 대한 로짓을 최대화합니다 (판별자를 속임).
+        # 현재 프로젝트는 HDR→HDR 변환이므로 HDR 판별자(D_)만 사용합니다.
         if do_Gmain:
             with torch.autograd.profiler.record_function('Gmain_forward'):
-                gen_img_ldr, gen_img_hdr, _gen_ws, _ = self.run_G(gen_z, gen_c, sync=(sync and not do_Gpl)) # Gpl에 의해 동기화될 수 있음.
-                gen_logits = self.run_D(gen_img_ldr, gen_c, sync=False,isRealImage=False)    ########  add isRealImage=False
-                gen_logits_ = self.run_D_hdr(gen_img_hdr, gen_c, sync=False,isRealImage=False)    ########  add isRealImage=False
+                gen_img_ldr, gen_img_hdr, _gen_ws, _ = self.run_G(gen_z, gen_c, sync=(sync and not do_Gpl))
+                # HDR 판별자만 사용 (LDR 판별자 비활성화)
+                gen_logits_ = self.run_D_hdr(gen_img_hdr, gen_c, sync=False, isRealImage=False)
                 training_stats.report('Loss/scores/fake', gen_logits_)
                 training_stats.report('Loss/signs/fake', gen_logits_.sign())
-                loss_Gmain = torch.nn.functional.softplus(-gen_logits) # -log(sigmoid(gen_logits))
-                loss_Gmain_ = torch.nn.functional.softplus(-gen_logits_) # -log(sigmoid(gen_logits))
-                # training_stats.report('Loss/G/loss', loss_Gmain+loss_Gmain_)
+                loss_Gmain_ = torch.nn.functional.softplus(-gen_logits_)
             with torch.autograd.profiler.record_function('Gmain_backward'):
-                (loss_Gmain+loss_Gmain_).mean().mul(gain).backward()
+                loss_Gmain_.mean().mul(gain).backward()
 
         # Gpl: 경로 길이 정규화(Path length regularization)를 적용합니다.
         if do_Gpl:

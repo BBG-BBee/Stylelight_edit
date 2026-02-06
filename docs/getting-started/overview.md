@@ -68,7 +68,9 @@ conda install pytorch==2.1.0 torchvision==0.16.0 pytorch-cuda=12.1 -c pytorch -c
 
 # 필수 패키지
 pip install lpips wandb matplotlib dlib imageio einops
-pip install imageio-ffmpeg ninja opencv-python OpenEXR
+pip install imageio-ffmpeg ninja opencv-python OpenEXR pyexr scikit-image
+pip install click psutil scipy requests tqdm tensorboard
+pip install skylibs colour-science
 ```
 
 자세한 환경 설정은 [환경 설정 가이드](installation.md)를 참조하세요.

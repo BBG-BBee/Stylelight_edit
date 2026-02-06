@@ -34,7 +34,8 @@
       "Bash(mkdocs build:*)",
       "Bash(ls:*)",
       "Bash(find:*)",
-      "Bash(~/.bashrc)"
+      "Bash(~/.bashrc)",
+      "Bash(grep:*)"
     ]
   }
 }
