@@ -1,0 +1,2477 @@
+
+<!doctype html>
+<html lang="ko" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="물리적 정합성 기반 HDR 파노라마 생성 모델 문서">
+      
+      
+      
+      
+        <link rel="prev" href="milestones.html">
+      
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/favicon-96x96.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.1">
+    
+    
+      
+        <title>통합 보고서 - StyleLight HDR 파노라마 생성 문서</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+        <script src="https://unpkg.com/iframe-worker/shim"></script>
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Noto+Sans+KR:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Noto Sans KR";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../stylesheets/custom.css">
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="blue" data-md-color-accent="blue">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#_1" class="md-skip">
+          콘텐츠로 이동
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow md-header--lifted" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="상단/헤더">
+    <a href="../index.html" title="StyleLight HDR 파노라마 생성 문서" class="md-header__button md-logo" aria-label="StyleLight HDR 파노라마 생성 문서" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            StyleLight HDR 파노라마 생성 문서
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              통합 보고서
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="blue" data-md-color-accent="blue"  aria-label="다크 모드로 전환"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="다크 모드로 전환" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="blue" data-md-color-accent="blue"  aria-label="라이트 모드로 전환"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="라이트 모드로 전환" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="검색" placeholder="검색" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="검색">
+        
+        <button type="reset" class="md-search__icon md-icon" title="지우기" aria-label="지우기" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            검색 초기화
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+  </nav>
+  
+    
+      
+<nav class="md-tabs" aria-label="탭" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../index.html" class="md-tabs__link">
+        
+  
+  
+    
+  
+  홈
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../getting-started/overview.html" class="md-tabs__link">
+          
+  
+  
+    
+  
+  시작하기
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../training/guide.html" class="md-tabs__link">
+          
+  
+  
+    
+  
+  학습 가이드
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../implementation/plan.html" class="md-tabs__link">
+          
+  
+  
+    
+  
+  구현
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="dtam.html" class="md-tabs__link">
+          
+  
+  
+    
+  
+  기술 문서
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+    
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="네비게이션" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../index.html" title="StyleLight HDR 파노라마 생성 문서" class="md-nav__button md-logo" aria-label="StyleLight HDR 파노라마 생성 문서" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    StyleLight HDR 파노라마 생성 문서
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../index.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    홈
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    시작하기
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    시작하기
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../getting-started/overview.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    프로젝트 소개
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../getting-started/installation.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    환경 설정
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../getting-started/faq.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    FAQ
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    학습 가이드
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    학습 가이드
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../training/guide.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    학습 실행
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    구현
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    구현
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../implementation/plan.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    구현 계획
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../implementation/result.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    구현 결과
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    기술 문서
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    기술 문서
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="dtam.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DTAM 이론
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="s2r-adapter.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    S2R-Adapter
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="milestones.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    마일스톤
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    통합 보고서
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="integrated-report.html" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    통합 보고서
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="목차">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      목차
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. 서론 및 문서 통합 전략
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="1. 서론 및 문서 통합 전략">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#11" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.1 프로젝트 배경
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#12" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.2 문서 통합 구조
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. 이론적 배경
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="2. 이론적 배경">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#21-dgp" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.1 주광 눈부심 확률(DGP)의 물리적 메커니즘
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#22" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.2 기존 컴퓨터 비전 모델의 한계
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#23-23mm" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.3 23mm 협각 렌즈의 한계
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. 아키텍처 정의
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3. 아키텍처 정의">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#31-stylegan2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.1 기반 모델 선정: StyleGAN2
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#32" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.2 목표 해상도
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#33-full-fp32" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.3 Full FP32 정밀도 정책
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#34" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.4 출력층 활성화 함수 변경
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. 핵심 방법론
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="4. 핵심 방법론">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#41-2-stage" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.1 2-Stage 하이브리드 학습 전략
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#42-mathcall_consist" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.2 구조적 일관성 손실 (\(\mathcal{L}_{Consist}\))
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#43-dtam" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.3 DTAM (이중 임계값 적응형 마스킹)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. 계산 인프라
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="5. 계산 인프라">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#51-gpu-vram" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.1 GPU 및 VRAM 요구사항
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#52-gradient-accumulation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.2 학습 안정화: Gradient Accumulation
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. 데이터셋 구성 및 전처리
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="6. 데이터셋 구성 및 전처리">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#61-s2r-hdr-synthetic-to-real-hdr" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6.1 S2R-HDR (Synthetic to Real HDR)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#62-laval-photometric-indoor-hdr" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6.2 Laval Photometric Indoor HDR
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#7" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7. 연구 개발 로드맵
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="7. 연구 개발 로드맵">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#milestone-13-stage-1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Milestone 1~3: 기반 구축 및 Stage 1
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#milestone-4-stage-2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Milestone 4: Stage 2 학습
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#milestone-5" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Milestone 5: 검증 파이프라인
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#8" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8. 검증 방법론
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="8. 검증 방법론">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#81-validation-workflow" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8.1 검증 파이프라인 (Validation Workflow)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#82" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8.2 평가 지표
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#9" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9. 결론 및 기대 효과
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="9. 결론 및 기대 효과">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#s2r-adapter" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        S2R-Adapter 구현 상세
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="목차">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      목차
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. 서론 및 문서 통합 전략
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="1. 서론 및 문서 통합 전략">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#11" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.1 프로젝트 배경
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#12" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.2 문서 통합 구조
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. 이론적 배경
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="2. 이론적 배경">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#21-dgp" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.1 주광 눈부심 확률(DGP)의 물리적 메커니즘
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#22" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.2 기존 컴퓨터 비전 모델의 한계
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#23-23mm" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.3 23mm 협각 렌즈의 한계
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. 아키텍처 정의
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3. 아키텍처 정의">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#31-stylegan2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.1 기반 모델 선정: StyleGAN2
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#32" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.2 목표 해상도
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#33-full-fp32" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.3 Full FP32 정밀도 정책
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#34" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.4 출력층 활성화 함수 변경
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. 핵심 방법론
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="4. 핵심 방법론">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#41-2-stage" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.1 2-Stage 하이브리드 학습 전략
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#42-mathcall_consist" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.2 구조적 일관성 손실 (\(\mathcal{L}_{Consist}\))
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#43-dtam" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.3 DTAM (이중 임계값 적응형 마스킹)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. 계산 인프라
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="5. 계산 인프라">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#51-gpu-vram" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.1 GPU 및 VRAM 요구사항
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#52-gradient-accumulation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.2 학습 안정화: Gradient Accumulation
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. 데이터셋 구성 및 전처리
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="6. 데이터셋 구성 및 전처리">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#61-s2r-hdr-synthetic-to-real-hdr" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6.1 S2R-HDR (Synthetic to Real HDR)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#62-laval-photometric-indoor-hdr" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6.2 Laval Photometric Indoor HDR
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#7" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7. 연구 개발 로드맵
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="7. 연구 개발 로드맵">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#milestone-13-stage-1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Milestone 1~3: 기반 구축 및 Stage 1
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#milestone-4-stage-2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Milestone 4: Stage 2 학습
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#milestone-5" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Milestone 5: 검증 파이프라인
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#8" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8. 검증 방법론
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="8. 검증 방법론">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#81-validation-workflow" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8.1 검증 파이프라인 (Validation Workflow)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#82" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8.2 평가 지표
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#9" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9. 결론 및 기대 효과
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="9. 결론 및 기대 효과">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#s2r-adapter" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        S2R-Adapter 구현 상세
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+
+<h1 id="_1">통합 연구 보고서<a class="headerlink" href="#_1" title="Permanent link">&para;</a></h1>
+<blockquote>
+<p>물리적 정합성 확보를 위한 고해상도 HDR 파노라마 생성 모델 (Rev. 1.2)</p>
+</blockquote>
+<hr />
+<h2 id="1">1. 서론 및 문서 통합 전략<a class="headerlink" href="#1" title="Permanent link">&para;</a></h2>
+<h3 id="11">1.1 프로젝트 배경<a class="headerlink" href="#11" title="Permanent link">&para;</a></h3>
+<p>본 프로젝트는 제한된 시야(Narrow-Field-of-View, NFoV)를 가진 단일 HDR 이미지로부터 물리적으로 정확한 180도 광각 HDR 파노라마를 생성하여, 신뢰할 수 있는 <strong>주광 눈부심 확률(Daylight Glare Probability, DGP)</strong> 시뮬레이션을 수행하는 것을 목표로 한다.</p>
+<h3 id="12">1.2 문서 통합 구조<a class="headerlink" href="#12" title="Permanent link">&para;</a></h3>
+<p>이 통합 보고서는 향후 프로젝트 진행의 <strong>단일 진실 공급원(Single Source of Truth)</strong> 역할을 수행하며, 이론적 배경부터 구체적인 코드 구현 레벨의 전략까지 포괄한다.</p>
+<p><strong>통합된 내용:</strong></p>
+<table>
+<thead>
+<tr>
+<th>출처 문서</th>
+<th>통합 위치</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>이론 및 아키텍쳐 정의서</td>
+<td>제2~3장</td>
+</tr>
+<tr>
+<td>조도 적응형 마스크(DTAM) 연구</td>
+<td>제4장 손실 함수</td>
+</tr>
+<tr>
+<td>마일스톤</td>
+<td>제7장 로드맵</td>
+</tr>
+<tr>
+<td>S2R-HDR 및 Laval 데이터셋 스펙</td>
+<td>제6장 데이터 파이프라인</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="2">2. 이론적 배경<a class="headerlink" href="#2" title="Permanent link">&para;</a></h2>
+<h3 id="21-dgp">2.1 주광 눈부심 확률(DGP)의 물리적 메커니즘<a class="headerlink" href="#21-dgp" title="Permanent link">&para;</a></h3>
+<p>DGP는 단순한 시각적 불쾌감을 넘어, 조명 환경의 물리적 에너지가 인간의 생리적 반응에 미치는 영향을 정량화한 지표이다.</p>
+<p><strong>DGP 수식:</strong></p>
+<div class="arithmatex">\[DGP = 5.87 \cdot 10^{-5} \cdot E_v + 9.18 \cdot 10^{-2} \cdot \log_{10} \left( 1 + \sum_{i} \frac{L_{s,i}^2 \cdot \omega_{s,i}}{E_v^{a_1} \cdot P_i^{a_2}} \right) + 0.16\]</div>
+<h4 id="211-e_v-adaptation">2.1.1 수직 조도(<span class="arithmatex">\(E_v\)</span>)와 순응(Adaptation)의 관계<a class="headerlink" href="#211-e_v-adaptation" title="Permanent link">&para;</a></h4>
+<p>수식에서 <span class="arithmatex">\(E_v\)</span>는 <strong>로그 항의 분모</strong>에 위치한다는 점이 중요하다.</p>
+<ul>
+<li>인간의 눈은 주변 환경의 밝기(<span class="arithmatex">\(E_v\)</span>)에 <strong>순응(Adaptation)</strong></li>
+<li>순응 레벨이 높을수록 동일한 강도의 광원에 대해 덜 민감하게 반응</li>
+<li>이는 <strong>베버-페히너 법칙(Weber-Fechner Law)</strong>을 반영</li>
+</ul>
+<div class="admonition danger">
+<p class="admonition-title">핵심 문제점</p>
+<p>생성 모델이 벽면이나 창문의 확산광을 실제보다 어둡게 생성하면 (예: 300 → 100 <span class="arithmatex">\(cd/m^2\)</span>), <span class="arithmatex">\(E_v\)</span> 값이 급격히 감소하고 DGP가 폭발적으로 증가하여 <strong>거짓 양성(False Positive)</strong> 결과를 초래한다.</p>
+</div>
+<h3 id="22">2.2 기존 컴퓨터 비전 모델의 한계<a class="headerlink" href="#22" title="Permanent link">&para;</a></h3>
+<p>현재 주류 생성형 AI 모델들(Stable Diffusion, Midjourney 등)은 8-bit RGB 이미지(LDR)를 기반으로 학습된다.</p>
+<table>
+<thead>
+<tr>
+<th>문제점</th>
+<th>설명</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>클리핑(Clipping)</strong></td>
+<td>고휘도 영역(수십만 <span class="arithmatex">\(cd/m^2\)</span>)이 255(흰색)로 잘려나감</td>
+</tr>
+<tr>
+<td><strong>물리적 선형성 결여</strong></td>
+<td>감마 보정/톤 매핑으로 <span class="arithmatex">\(Pixel \propto Energy\)</span> 관계가 파괴됨</td>
+</tr>
+<tr>
+<td><strong>LDM VAE 트랩</strong></td>
+<td>VAE 압축 과정에서 작은 광원의 피크 휘도가 평탄화(Smoothing)됨</td>
+</tr>
+</tbody>
+</table>
+<h3 id="23-23mm">2.3 23mm 협각 렌즈의 한계<a class="headerlink" href="#23-23mm" title="Permanent link">&para;</a></h3>
+<p>건축 현장에서 흔히 사용되는 23mm 광각 렌즈는 약 <strong>63°의 시야각(FoV)</strong>을 가진다.</p>
+<table>
+<thead>
+<tr>
+<th>문제</th>
+<th>영향</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>누락된 데이터</strong></td>
+<td>전체 반구 면적의 약 80% 이상 누락</td>
+</tr>
+<tr>
+<td><strong>광원 누락</strong></td>
+<td>창문이나 조명이 프레임 밖에 위치할 경우 주요 눈부심 원인 놓침</td>
+</tr>
+<tr>
+<td><strong><span class="arithmatex">\(E_v\)</span> 과소평가</strong></td>
+<td>누락된 영역의 빛 에너지가 적분에서 제외되어 실제의 1/5 수준</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="3">3. 아키텍처 정의<a class="headerlink" href="#3" title="Permanent link">&para;</a></h2>
+<h3 id="31-stylegan2">3.1 기반 모델 선정: StyleGAN2<a class="headerlink" href="#31-stylegan2" title="Permanent link">&para;</a></h3>
+<p>최근 Diffusion Model이 트렌드이지만, 본 연구에서는 <strong>StyleGAN2 (StyleLight 변형)</strong>를 채택한다.</p>
+<table>
+<thead>
+<tr>
+<th>장점</th>
+<th>설명</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>픽셀 공간 직접 연산</strong></td>
+<td>VAE 없이 픽셀 공간으로 직접 매핑, HDR 동적 범위 손실 없음</td>
+</tr>
+<tr>
+<td><strong>고해상도 안정성</strong></td>
+<td><span class="arithmatex">\(1024 \times 1024\)</span> 이상에서 검증된 안정성</td>
+</tr>
+<tr>
+<td><strong>GAN Inversion</strong></td>
+<td>NFoV 이미지를 잠재 공간에 역투영하여 Outpainting에 구조적 적합</td>
+</tr>
+</tbody>
+</table>
+<h3 id="32">3.2 목표 해상도<a class="headerlink" href="#32" title="Permanent link">&para;</a></h3>
+<p><strong><span class="arithmatex">\(512 \times 1024\)</span> (Equirectangular Format)</strong> Native 출력</p>
+<ul>
+<li>기존 StyleLight (<span class="arithmatex">\(256 \times 512\)</span>)보다 상향</li>
+<li>1:2 비율의 비정사각형 데이터</li>
+</ul>
+<h3 id="33-full-fp32">3.3 Full FP32 정밀도 정책<a class="headerlink" href="#33-full-fp32" title="Permanent link">&para;</a></h3>
+<p>본 프로젝트의 가장 중요한 기술적 차별점이다.</p>
+<h4 id="fp16mixed-precision">FP16(Mixed Precision)의 문제<a class="headerlink" href="#fp16mixed-precision" title="Permanent link">&para;</a></h4>
+<table>
+<thead>
+<tr>
+<th>문제</th>
+<th>설명</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Overflow</strong></td>
+<td>FP16 최대값 65,504 &lt; 태양 휘도(수백만 <span class="arithmatex">\(cd/m^2\)</span>). 강제 클리핑 발생</td>
+</tr>
+<tr>
+<td><strong>Underflow</strong></td>
+<td>어두운 그림자(<span class="arithmatex">\(10^{-3} cd/m^2\)</span>)에서 그래디언트 소실</td>
+</tr>
+</tbody>
+</table>
+<h4 id="_2">해결책<a class="headerlink" href="#_2" title="Permanent link">&para;</a></h4>
+<p>데이터 로딩, 모델 가중치, 활성화 함수, 손실 계산 등 <strong>전 과정을 float32로 통일</strong></p>
+<h3 id="34">3.4 출력층 활성화 함수 변경<a class="headerlink" href="#34" title="Permanent link">&para;</a></h3>
+<p>기존 StyleGAN2는 <strong>Tanh</strong> (<span class="arithmatex">\([-1, 1]\)</span>)를 사용하지만, 물리적 휘도는:
+- 음수일 수 없음 (<span class="arithmatex">\(L \ge 0\)</span>)
+- 상한선이 없음</p>
+<p><strong>해결책: Softplus 활성화 함수</strong></p>
+<div class="arithmatex">\[y = \text{Softplus}(x) = \ln(1 + e^x)\]</div>
+<table>
+<thead>
+<tr>
+<th>특성</th>
+<th>설명</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>비음수성</strong></td>
+<td>항상 양수 출력</td>
+</tr>
+<tr>
+<td><strong>무한 동적 범위</strong></td>
+<td>상한 없음, 고휘도 직접 회귀 가능</td>
+</tr>
+<tr>
+<td><strong>미분 가능</strong></td>
+<td>ReLU와 달리 0 근처에서 부드러움</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="4">4. 핵심 방법론<a class="headerlink" href="#4" title="Permanent link">&para;</a></h2>
+<h3 id="41-2-stage">4.1 2-Stage 하이브리드 학습 전략<a class="headerlink" href="#41-2-stage" title="Permanent link">&para;</a></h3>
+<p>데이터 편향 문제를 해결하고 물리적 정확도를 확보하기 위한 전략이다.</p>
+<table>
+<thead>
+<tr>
+<th>단계</th>
+<th>데이터셋</th>
+<th>목표</th>
+<th>학습 방식</th>
+<th>DTAM</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Stage 1</strong></td>
+<td>S2R-HDR (24k, 합성)</td>
+<td>구조적 일반화</td>
+<td>Scratch Training</td>
+<td>미적용</td>
+</tr>
+<tr>
+<td><strong>Stage 2</strong></td>
+<td>Laval Indoor (1.7k, 실측)</td>
+<td>물리적 도메인 적응</td>
+<td>S2R-Adapter</td>
+<td>적용</td>
+</tr>
+</tbody>
+</table>
+<h4 id="stage-1">Stage 1: 구조 학습<a class="headerlink" href="#stage-1" title="Permanent link">&para;</a></h4>
+<ul>
+<li><strong>데이터셋:</strong> S2R-HDR (Unreal Engine 5로 생성된 24,000장 합성 HDR)</li>
+<li><strong>전략:</strong> 물리적 휘도 정확성보다 인페인팅/아웃페인팅 능력 배양에 집중</li>
+<li><strong>DTAM:</strong> 미적용 (합성 데이터의 물리량이 실제와 다를 수 있음)</li>
+</ul>
+<h4 id="stage-2">Stage 2: 물리 보정<a class="headerlink" href="#stage-2" title="Permanent link">&para;</a></h4>
+<ul>
+<li><strong>데이터셋:</strong> Laval Photometric Indoor HDR (색차계 보정된 1,700장 실측 데이터)</li>
+<li><strong>S2R-Adapter:</strong> Stage 1의 <span class="arithmatex">\(G\)</span> 가중치 동결, 2-브랜치 어댑터만 학습</li>
+<li>r1=1 (미세 조정)</li>
+<li>r2=128 (광범위 적응)</li>
+<li>scale1, scale2: 학습 가능 파라미터로 자동 최적화</li>
+</ul>
+<h4 id="test-time-adaptation-tta-">Test-Time Adaptation (TTA) - 선택적 기능<a class="headerlink" href="#test-time-adaptation-tta-" title="Permanent link">&para;</a></h4>
+<ul>
+<li><strong>목적:</strong> 새로운 도메인 데이터에 대한 추론 시 동적 적응</li>
+<li><strong>작동 원리:</strong></li>
+<li>입력에 N개 증강(ExpAug, WBAug, FlipAug, PermAug) 적용</li>
+<li>출력들의 분산으로 불확실성 <span class="arithmatex">\(U(x)\)</span> 계산</li>
+<li>스케일 동적 조절: <span class="arithmatex">\(\alpha_1 = 1 - U(x)\)</span>, <span class="arithmatex">\(\alpha_2 = 1 + U(x)\)</span></li>
+<li><strong>사용 시나리오:</strong></li>
+<li>Laval 파인튜닝 후: TTA <strong>불필요</strong> (기본 off)</li>
+<li>새 도메인 추론 시: TTA <strong>선택적 활성화</strong></li>
+</ul>
+<h3 id="42-mathcall_consist">4.2 구조적 일관성 손실 (<span class="arithmatex">\(\mathcal{L}_{Consist}\)</span>)<a class="headerlink" href="#42-mathcall_consist" title="Permanent link">&para;</a></h3>
+<p>Stage 2에서 Laval 데이터에 과적합되어 Stage 1의 구조 지식이 무너지는 것을 방지한다.</p>
+<div class="arithmatex">\[\mathcal{L}_{Consist} = \text{LPIPS}( \text{ToneMap}(G_{Stage1}(z)), \text{ToneMap}(G_{Stage2}(z)) )\]</div>
+<ul>
+<li>Stage 1 모델 = Teacher</li>
+<li>Stage 2 모델 = Student</li>
+<li>물리적 휘도 스케일은 변경하되, 내용과 구조는 Stage 1 지식을 따르도록 강제</li>
+</ul>
+<h3 id="43-dtam">4.3 DTAM (이중 임계값 적응형 마스킹)<a class="headerlink" href="#43-dtam" title="Permanent link">&para;</a></h3>
+<p>Stage 2 학습의 핵심 손실 함수 전략이다.</p>
+<h4 id="wl">가중치 함수 <span class="arithmatex">\(W(L)\)</span><a class="headerlink" href="#wl" title="Permanent link">&para;</a></h4>
+<div class="arithmatex">\[W(L) = \begin{cases}
+1.0 &amp; \text{if } L &lt; 300 \\
+1.0 + 9.0 \cdot \left( \frac{L - 300}{1000 - 300} \right)^2 &amp; \text{if } 300 \le L &lt; 1000 \\
+10.0 &amp; \text{if } L \ge 1000
+\end{cases}\]</div>
+<table>
+<thead>
+<tr>
+<th>휘도 구간 (<span class="arithmatex">\(cd/m^2\)</span>)</th>
+<th>가중치</th>
+<th>역할</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0 ~ 300</td>
+<td>1.0</td>
+<td>배경/텍스처 학습</td>
+</tr>
+<tr>
+<td>300 ~ 1,000</td>
+<td>1.0 → 10.0</td>
+<td>전이 구간, <span class="arithmatex">\(E_v\)</span> 정합성 보장</td>
+</tr>
+<tr>
+<td>1,000+</td>
+<td>10.0</td>
+<td>광원 피크 정밀 복원</td>
+</tr>
+</tbody>
+</table>
+<h4 id="_3">최종 물리 손실 함수<a class="headerlink" href="#_3" title="Permanent link">&para;</a></h4>
+<div class="arithmatex">\[\mathcal{L}_{Phys} = \| W_{DTAM} \odot (\text{PU21}(Y_{pred}) - \text{PU21}(Y_{gt})) \|_1\]</div>
+<ul>
+<li><strong>PU21:</strong> 인간의 시각적 인지 특성 반영</li>
+<li><strong><span class="arithmatex">\(W_{DTAM}\)</span>:</strong> 조명 공학적 중요도 반영</li>
+<li><strong>적용 대상:</strong> Generator 가중치 업데이트에만 사용</li>
+</ul>
+<hr />
+<h2 id="5">5. 계산 인프라<a class="headerlink" href="#5" title="Permanent link">&para;</a></h2>
+<h3 id="51-gpu-vram">5.1 GPU 및 VRAM 요구사항<a class="headerlink" href="#51-gpu-vram" title="Permanent link">&para;</a></h3>
+<p><span class="arithmatex">\(512 \times 1024\)</span> 해상도의 Full FP32 학습을 위해 <strong>NVIDIA RTX 5090</strong>을 사용한다.</p>
+<table>
+<thead>
+<tr>
+<th>항목</th>
+<th>스펙</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>GPU</strong></td>
+<td>NVIDIA RTX 5090</td>
+</tr>
+<tr>
+<td><strong>VRAM</strong></td>
+<td>32GB GDDR7 (예상)</td>
+</tr>
+<tr>
+<td><strong>배치 사이즈</strong></td>
+<td>1~2 (FP32 기준)</td>
+</tr>
+<tr>
+<td><strong>정밀도</strong></td>
+<td>amp 비활성화, 전 과정 float32</td>
+</tr>
+</tbody>
+</table>
+<h3 id="52-gradient-accumulation">5.2 학습 안정화: Gradient Accumulation<a class="headerlink" href="#52-gradient-accumulation" title="Permanent link">&para;</a></h3>
+<p>배치 사이즈 제약을 극복하기 위해 <strong>16~32 스텝</strong> 동안 그래디언트를 누적한 후 역전파를 수행한다.</p>
+<hr />
+<h2 id="6">6. 데이터셋 구성 및 전처리<a class="headerlink" href="#6" title="Permanent link">&para;</a></h2>
+<h3 id="61-s2r-hdr-synthetic-to-real-hdr">6.1 S2R-HDR (Synthetic to Real HDR)<a class="headerlink" href="#61-s2r-hdr-synthetic-to-real-hdr" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>항목</th>
+<th>내용</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>장수</strong></td>
+<td>24,000장</td>
+</tr>
+<tr>
+<td><strong>해상도</strong></td>
+<td><span class="arithmatex">\(1920 \times 1080\)</span></td>
+</tr>
+<tr>
+<td><strong>포맷</strong></td>
+<td>EXR</td>
+</tr>
+</tbody>
+</table>
+<p><strong>전처리 과정:</strong></p>
+<ol>
+<li><span class="arithmatex">\(1024\)</span> 폭에 맞춰 다운샘플링 (Lanczos 필터)</li>
+<li>pytorch360convert로 <span class="arithmatex">\(512 \times 1024\)</span> Equirectangular 변환</li>
+<li>float32 변환 (톤 매핑 없이 선형 휘도 유지)</li>
+</ol>
+<h3 id="62-laval-photometric-indoor-hdr">6.2 Laval Photometric Indoor HDR<a class="headerlink" href="#62-laval-photometric-indoor-hdr" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>항목</th>
+<th>내용</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>장수</strong></td>
+<td>1,719장</td>
+</tr>
+<tr>
+<td><strong>특징</strong></td>
+<td>물리적 휘도 보정 완료</td>
+</tr>
+<tr>
+<td><strong>포맷</strong></td>
+<td>HDR</td>
+</tr>
+</tbody>
+</table>
+<p><strong>전처리 과정:</strong></p>
+<ol>
+<li>.hdr 파일 헤더의 노출 값(Exposure) 반영</li>
+<li>절대 휘도(<span class="arithmatex">\(cd/m^2\)</span>)로 변환</li>
+<li>FP32 텐서화</li>
+</ol>
+<hr />
+<h2 id="7">7. 연구 개발 로드맵<a class="headerlink" href="#7" title="Permanent link">&para;</a></h2>
+<h3 id="milestone-13-stage-1">Milestone 1~3: 기반 구축 및 Stage 1<a class="headerlink" href="#milestone-13-stage-1" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>마일스톤</th>
+<th>내용</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>M1</strong></td>
+<td>데이터셋(S2R/Laval) 확보, pytorch360convert 파이프라인 구축</td>
+</tr>
+<tr>
+<td><strong>M2</strong></td>
+<td>출력층 Softplus 변경, Full FP32 로더 구현</td>
+</tr>
+<tr>
+<td><strong>M3</strong></td>
+<td>S2R-HDR로 구조 학습 (DTAM 미적용) → Checkpoint-Stage1</td>
+</tr>
+</tbody>
+</table>
+<h3 id="milestone-4-stage-2">Milestone 4: Stage 2 학습<a class="headerlink" href="#milestone-4-stage-2" title="Permanent link">&para;</a></h3>
+<p><strong>세부 활동:</strong></p>
+<ol>
+<li>Checkpoint-Stage1 로드 및 <span class="arithmatex">\(G\)</span> 동결</li>
+<li>S2R-Adapter 적용</li>
+<li><span class="arithmatex">\(\mathcal{L}_{Phys} + \mathcal{L}_{Consist}\)</span> 복합 손실 함수로 학습</li>
+<li>→ <strong>Checkpoint-Final</strong></li>
+</ol>
+<h3 id="milestone-5">Milestone 5: 검증 파이프라인<a class="headerlink" href="#milestone-5" title="Permanent link">&para;</a></h3>
+<hr />
+<h2 id="8">8. 검증 방법론<a class="headerlink" href="#8" title="Permanent link">&para;</a></h2>
+<h3 id="81-validation-workflow">8.1 검증 파이프라인 (Validation Workflow)<a class="headerlink" href="#81-validation-workflow" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>단계</th>
+<th>작업</th>
+<th>출력</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>생성</td>
+<td><span class="arithmatex">\(512 \times 1024\)</span> Equirectangular HDR (FP32)</td>
+</tr>
+<tr>
+<td>2</td>
+<td>크롭</td>
+<td>전방 180° 영역 (<span class="arithmatex">\(512 \times 512\)</span>)</td>
+</tr>
+<tr>
+<td>3</td>
+<td>초해상도 (SR)</td>
+<td><span class="arithmatex">\(1024 \times 1024\)</span> (SwinIR 등)</td>
+</tr>
+<tr>
+<td>4</td>
+<td>투영 변환</td>
+<td>Angular Fisheye (-vta) 포맷</td>
+</tr>
+<tr>
+<td>5</td>
+<td>헤더 주입</td>
+<td><code>VIEW= -vta -vv 180 -vh 180</code></td>
+</tr>
+<tr>
+<td>6</td>
+<td>DGP 산출</td>
+<td>evalglare 실행</td>
+</tr>
+</tbody>
+</table>
+<h3 id="82">8.2 평가 지표<a class="headerlink" href="#82" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>지표</th>
+<th>설명</th>
+<th>목표</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong><span class="arithmatex">\(\Delta E_v\)</span></strong></td>
+<td>수직 조도 오차율</td>
+<td>&lt; 10%</td>
+</tr>
+<tr>
+<td><strong><span class="arithmatex">\(RMSE_{trans}\)</span></strong></td>
+<td>전이 구간(300~1,000 <span class="arithmatex">\(cd/m^2\)</span>) 오차</td>
+<td>최소화</td>
+</tr>
+<tr>
+<td><strong>DGP Class Accuracy</strong></td>
+<td>눈부심 등급 분류 정확도</td>
+<td>최대화</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="9">9. 결론 및 기대 효과<a class="headerlink" href="#9" title="Permanent link">&para;</a></h2>
+<p>본 연구 보고서는 다음의 핵심 기술을 통해 이론적 완성도를 높였다:</p>
+<table>
+<thead>
+<tr>
+<th>기술</th>
+<th>역할</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>S2R-Adapter</strong></td>
+<td>2-브랜치 도메인 적응으로 효율적 물리 보정</td>
+</tr>
+<tr>
+<td><strong>스케일 학습</strong></td>
+<td>파인튜닝 시 scale1, scale2 자동 최적화</td>
+</tr>
+<tr>
+<td><strong>TTA (Test-Time Adaptation)</strong></td>
+<td>불확실성 기반 동적 스케일 조절 (선택적)</td>
+</tr>
+<tr>
+<td><strong>구조적 일관성 손실 (<span class="arithmatex">\(\mathcal{L}_{Consist}\)</span>)</strong></td>
+<td>Stage 1 지식 보존</td>
+</tr>
+<tr>
+<td><strong>Softplus 활성화 함수</strong></td>
+<td>무한 동적 범위 지원</td>
+</tr>
+<tr>
+<td><strong>Full FP32 파이프라인</strong></td>
+<td>물리적 휘도 정밀도 확보</td>
+</tr>
+<tr>
+<td><strong>DTAM</strong></td>
+<td>전이 구간 학습 강화</td>
+</tr>
+<tr>
+<td><strong>SR 후처리</strong></td>
+<td>작은 광원 소실 방지</td>
+</tr>
+</tbody>
+</table>
+<h3 id="s2r-adapter">S2R-Adapter 구현 상세<a class="headerlink" href="#s2r-adapter" title="Permanent link">&para;</a></h3>
+<p>S2R-Adapter의 핵심 구성요소:</p>
+<table>
+<thead>
+<tr>
+<th>구성요소</th>
+<th>파일</th>
+<th>설명</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>S2R-Adapter 코어</td>
+<td><code>training/s2r_adapter.py</code></td>
+<td>2-브랜치 어댑터, 스케일 조절 함수</td>
+</tr>
+<tr>
+<td>TTA 증강</td>
+<td><code>training/tta_augment.py</code></td>
+<td>ExpAug, WBAug, FlipAug, PermAug</td>
+</tr>
+<tr>
+<td>TTA 통합</td>
+<td><code>training/coaches/my_coach.py</code></td>
+<td><code>train_with_tta()</code> 메서드</td>
+</tr>
+</tbody>
+</table>
+<p><strong>스케일 조절 전략:</strong></p>
+<ol>
+<li><strong>파인튜닝 시 (Stage 2):</strong></li>
+<li><code>make_scales_learnable()</code> 호출</li>
+<li>
+<p>역전파를 통해 최적 scale1, scale2 자동 학습</p>
+</li>
+<li>
+<p><strong>추론 시 (TTA 활성화):</strong></p>
+</li>
+<li>불확실성 <span class="arithmatex">\(U(x)\)</span> 계산</li>
+<li><span class="arithmatex">\(\alpha_1 = 1 - U(x)\)</span>, <span class="arithmatex">\(\alpha_2 = 1 + U(x)\)</span> 적용</li>
+<li>새로운 도메인에서만 선택적 사용</li>
+</ol>
+<p><strong>기대 효과:</strong></p>
+<p>RTX 5090 기반 Full FP32 연산과 SR 후처리 파이프라인의 결합은 물리적 휘도 정보의 손실을 극소화하여, <strong>23mm 협각 사진 한 장만으로도 신뢰할 수 있는 수준의 조명 시뮬레이션</strong>을 가능하게 할 것이다.</p>
+<p>이는 건축 및 조명 설계 분야에서 고가의 장비 없이도 정밀한 환경 분석을 수행할 수 있는 혁신적인 도구가 될 것이다.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  맨위로
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+    
+      
+      <nav class="md-footer__inner md-grid" aria-label="하단/푸터" >
+        
+          
+          <a href="milestones.html" class="md-footer__link md-footer__link--prev" aria-label="이전: 마일스톤">
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+            </div>
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                이전
+              </span>
+              <div class="md-ellipsis">
+                마일스톤
+              </div>
+            </div>
+          </a>
+        
+        
+      </nav>
+    
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.tabs", "navigation.tabs.sticky", "navigation.sections", "navigation.top", "navigation.footer", "navigation.indexes", "toc.follow", "search.highlight", "search.suggest", "content.code.copy"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "\ud074\ub9bd\ubcf4\ub4dc\uc5d0 \ubcf5\uc0ac\ub428", "clipboard.copy": "\ud074\ub9bd\ubcf4\ub4dc\ub85c \ubcf5\uc0ac", "search.result.more.one": "\uc774 \ubb38\uc11c\uc5d0\uc11c 1\uac1c\uc758 \uac80\uc0c9 \uacb0\uacfc \ub354 \ubcf4\uae30", "search.result.more.other": "\uc774 \ubb38\uc11c\uc5d0\uc11c #\uac1c\uc758 \uac80\uc0c9 \uacb0\uacfc \ub354 \ubcf4\uae30", "search.result.none": "\uac80\uc0c9\uc5b4\uc640 \uc77c\uce58\ud558\ub294 \ubb38\uc11c\uac00 \uc5c6\uc2b5\ub2c8\ub2e4", "search.result.one": "1\uac1c\uc758 \uc77c\uce58\ud558\ub294 \ubb38\uc11c", "search.result.other": "#\uac1c\uc758 \uc77c\uce58\ud558\ub294 \ubb38\uc11c", "search.result.placeholder": "\uac80\uc0c9\uc5b4\ub97c \uc785\ub825\ud558\uc138\uc694", "search.result.term.missing": "\ud3ec\ud568\ub418\uc9c0 \uc54a\uc740 \uac80\uc0c9\uc5b4", "select.version": "\ubc84\uc804 \uc120\ud0dd"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+        <script src="../javascripts/mathjax.js"></script>
+      
+        <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+      
+    
+  </body>
+</html>
