@@ -251,10 +251,9 @@ def setup_stage2_training_kwargs(
     args.training_set_kwargs = dnnlib.EasyDict(
         class_name='training.dataset.HDRPhysicalDataset',
         path=data,
-        linear_hdr=True,
-        dataset_type='laval',  # Laval Photometric 데이터셋
         target_height=512,
         target_width=1024,
+        use_tilt_augment=False,  # Stage 2는 절대 휘도 캘리브레이션 — tilt 비활성화
         use_labels=False,
         max_size=None,
         xflip=mirror,

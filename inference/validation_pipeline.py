@@ -32,11 +32,14 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 try:
     from skylibs.hdrio import imread, imsave
-    from skylibs.envmap import EnvironmentMap
+    from skylibs.envmap import EnvironmentMap, rotation_matrix
 except ImportError:
     print("Warning: skylibs not found. Some functions may not work.")
     imread = None
     imsave = None
+    rotation_matrix = None
+
+from utils.hdr_utils import log_domain_resize
 
 
 class ValidationPipeline:
@@ -348,8 +351,71 @@ class ValidationPipeline:
         except Exception as e:
             print(f"Warning: Failed to inject VIEW header: {e}")
 
+    def preprocess_lfov_input(self,
+                              image_path: str,
+                              vfov: float = 63.0,
+                              azimuth: float = 0.0,
+                              elevation: float = 0.0) -> Tuple[torch.Tensor, torch.Tensor]:
+        """
+        NFoV HDR 이미지를 ERP 마스크드 입력으로 변환
+
+        23mm 렌즈(~63° FoV)로 촬영한 HDR 이미지를 512×1024 Equirectangular에
+        embed하여 Generator 입력(GAN Inversion 등)으로 사용할 수 있는 형태로 변환한다.
+
+        Args:
+            image_path: NFoV HDR 이미지 경로 (.exr, .hdr)
+            vfov: 수직 화각 (기본 63° — 23mm 렌즈)
+            azimuth: 카메라 방위각 (rad)
+            elevation: 카메라 고도각 (rad)
+
+        Returns:
+            masked_pano: (1, 3, 512, 1024) 마스크된 ERP 텐서
+            mask: (1, 1, 512, 1024) 유효 영역 바이너리 마스크
+        """
+        import cv2
+
+        # 1. HDR 이미지 로드
+        image = imread(image_path).astype(np.float32)
+        image = np.maximum(image, 0.0)  # 음수 방지
+
+        # 2. 256×192로 다운스케일 (4:3) — log-domain 리사이즈로 피크 휘도 보존
+        image_resized = log_domain_resize(image, 192, 256)
+
+        # 3. 빈 ERP 생성 + 카메라 방향 설정
+        env = EnvironmentMap(512, 'latlong')
+        dcm = rotation_matrix(azimuth=azimuth, elevation=elevation, roll=0)
+
+        # 4. crop을 ERP에 embed → (512, 1024, 3)
+        #    Fov2MaskedPano(mode="normal"): 빈 ERP 좌표에 crop 픽셀 매핑
+        masked_pano = env.Fov2MaskedPano(
+            image_resized, vfov=vfov, rotation_matrix=dcm,
+            ar=4. / 3., resolution=(256, 192),
+            projection="perspective", mode="normal"
+        )
+
+        # 5. binary mask 획득 — mode="mask"는 (512, 1024) mask만 반환
+        mask = env.Fov2MaskedPano(
+            image_resized, vfov=vfov, rotation_matrix=dcm,
+            ar=4. / 3., resolution=(256, 192),
+            projection="perspective", mode="mask"
+        )
+
+        # 6. 텐서 변환 (HWC → CHW → batch)
+        masked_pano_t = torch.from_numpy(
+            masked_pano.transpose(2, 0, 1).copy()
+        ).unsqueeze(0).float().to(self.device)
+        mask_t = torch.from_numpy(
+            mask[np.newaxis, np.newaxis].copy()
+        ).float().to(self.device)
+
+        return masked_pano_t, mask_t
+
     def run(self,
             z: Optional[torch.Tensor] = None,
+            input_path: Optional[str] = None,
+            vfov: float = 63.0,
+            azimuth: float = 0.0,
+            elevation: float = 0.0,
             output_path: str = 'output_fisheye.hdr',
             truncation_psi: float = 0.7,
             save_intermediate: bool = False) -> Dict:
@@ -358,6 +424,10 @@ class ValidationPipeline:
 
         Args:
             z: latent 벡터 (None이면 랜덤)
+            input_path: NFoV HDR 입력 이미지 경로 (지정 시 LFOV 전처리 수행)
+            vfov: 수직 화각 (기본 63° — 23mm 렌즈)
+            azimuth: 카메라 방위각 (rad)
+            elevation: 카메라 고도각 (rad)
             output_path: 출력 파일 경로
             truncation_psi: truncation 파라미터
             save_intermediate: 중간 결과 저장 여부
@@ -368,10 +438,22 @@ class ValidationPipeline:
                 'panorama': Equirectangular 파노라마,
                 'cropped': 크롭된 전방 반구,
                 'upscaled': 업스케일된 이미지,
-                'output_path': 저장된 파일 경로
+                'output_path': 저장된 파일 경로,
+                'masked_pano': (입력 지정 시) 마스크된 ERP,
+                'mask': (입력 지정 시) 유효 영역 마스크
             }
         """
         results = {}
+
+        # Step 0: LFOV 입력 전처리 (지정 시)
+        if input_path is not None:
+            print('Step 0: NFoV HDR 입력 전처리 중...')
+            masked_pano, mask = self.preprocess_lfov_input(
+                input_path, vfov=vfov, azimuth=azimuth, elevation=elevation
+            )
+            results['masked_pano'] = masked_pano
+            results['mask'] = mask
+            # TODO: GAN Inversion으로 masked_pano에서 최적 z를 찾는 단계 추가 예정
 
         # Step 1: 파노라마 생성
         print('Step 1: 파노라마 생성 중...')
@@ -447,6 +529,16 @@ def main():
     parser.add_argument('--device', type=str, default='cuda',
                         help='디바이스 (기본값: cuda)')
 
+    # LFOV 입력 전처리 옵션
+    parser.add_argument('--input', type=str, default=None,
+                        help='NFoV HDR 입력 이미지 경로 (.exr, .hdr)')
+    parser.add_argument('--vfov', type=float, default=63.0,
+                        help='수직 화각 (기본값: 63° — 23mm 렌즈)')
+    parser.add_argument('--az', type=float, default=0.0,
+                        help='카메라 방위각 azimuth (rad)')
+    parser.add_argument('--el', type=float, default=0.0,
+                        help='카메라 고도각 elevation (rad)')
+
     args = parser.parse_args()
 
     # 시드 설정
@@ -463,6 +555,10 @@ def main():
 
     # 실행
     results = pipeline.run(
+        input_path=args.input,
+        vfov=args.vfov,
+        azimuth=args.az,
+        elevation=args.el,
         output_path=args.output,
         truncation_psi=args.truncation,
         save_intermediate=args.save_intermediate

@@ -26,6 +26,8 @@ try:
 except ImportError:
     print("Warning: skylibs not found. Some functions may not work.")
 
+from utils.hdr_utils import log_domain_resize
+
 
 def prepare_s2r_hdr(input_dir: str, output_dir: str,
                     target_resolution: tuple = (512, 1024),
@@ -115,13 +117,9 @@ def prepare_s2r_hdr(input_dir: str, output_dir: str,
             # 음수 값 제거 (물리적 휘도는 0 이상)
             image_hdr = np.maximum(image_hdr, 0.0)
 
-            # 리사이즈 필요시만
+            # 리사이즈 필요시만 (로그 도메인 리사이즈로 피크 휘도 보존)
             if need_resize:
-                image_hdr = cv2.resize(
-                    image_hdr,
-                    (target_w, target_h),
-                    interpolation=cv2.INTER_LANCZOS4
-                )
+                image_hdr = log_domain_resize(image_hdr, target_h, target_w)
 
             # 출력 경로 생성
             output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -273,13 +271,9 @@ def prepare_laval_photometric(input_dir: str, output_dir: str,
                 'median': float(np.median(luminance))
             })
 
-            # 리사이즈 필요시만
+            # 리사이즈 필요시만 (로그 도메인 리사이즈로 피크 휘도 보존)
             if need_resize:
-                image_hdr = cv2.resize(
-                    image_hdr,
-                    (target_w, target_h),
-                    interpolation=cv2.INTER_LANCZOS4
-                )
+                image_hdr = log_domain_resize(image_hdr, target_h, target_w)
 
             # 출력 경로 생성
             output_path.parent.mkdir(parents=True, exist_ok=True)

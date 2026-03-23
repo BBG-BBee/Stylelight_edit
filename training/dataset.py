@@ -23,6 +23,7 @@ except ImportError:
 from skylibs.envmap import EnvironmentMap
 # from . import tonemapping #import TonemapHDR
 from training.tonemapping import TonemapHDR
+from utils.hdr_utils import log_domain_resize
 #----------------------------------------------------------------------------
 
 class Dataset(torch.utils.data.Dataset):
@@ -283,21 +284,16 @@ class HDRPhysicalDataset(Dataset):
     def __init__(self,
         path,                   # 데이터셋 경로 (디렉토리 또는 zip)
         resolution      = None, # 목표 해상도
-        linear_hdr      = True, # True: 톤매핑 없이 선형 HDR 로드
-        dataset_type    = 'auto', # 'auto', 's2r_hdr', 'laval'
         target_height   = 512,  # 목표 높이 (512x1024 Equirectangular)
         target_width    = 1024, # 목표 너비
+        use_tilt_augment = False, # True: 카메라 기울기 augmentation (Stage 1 전용)
         **super_kwargs,
     ):
         self._path = path
         self._zipfile = None
-        self.linear_hdr = linear_hdr
-        self.dataset_type = dataset_type
         self.target_height = target_height
         self.target_width = target_width
-
-        # 톤매핑은 LDR 생성 시에만 사용 (비교용)
-        self.tonemap = TonemapHDR(gamma=2.4, percentile=50, max_mapping=0.5)
+        self.use_tilt_augment = use_tilt_augment
 
         if os.path.isdir(self._path):
             self._type = 'dir'
@@ -357,9 +353,7 @@ class HDRPhysicalDataset(Dataset):
         물리적 휘도를 보존하는 HDR 이미지 로드
 
         Returns:
-            image: (C, H, W) 형태의 FP32 텐서
-                - linear_hdr=True: 3채널 선형 HDR (cd/m² 스케일)
-                - linear_hdr=False: 6채널 (LDR 3ch + HDR 3ch)
+            image: (C, H, W) 형태의 FP32 텐서, 3채널 선형 HDR (cd/m² 스케일)
         """
         fname = self._image_fnames[raw_idx]
         file_path = os.path.join(self._path, fname)
@@ -368,43 +362,53 @@ class HDRPhysicalDataset(Dataset):
         e = EnvironmentMap(file_path, 'latlong')
         image_hdr = e.data.astype(np.float32)  # FP32 강제
 
-        # 해상도 조정 (Lanczos 리샘플링)
+        # 해상도 조정 (로그 도메인 리사이즈)
         if image_hdr.shape[0] != self.target_height or image_hdr.shape[1] != self.target_width:
             image_hdr = self._resize_hdr(image_hdr, self.target_height, self.target_width)
 
-        if self.linear_hdr:
-            # 선형 HDR만 반환 (톤매핑 없음)
-            # 음수 값 방지 (물리적 휘도는 0 이상)
-            image_hdr = np.maximum(image_hdr, 0.0)
-            image = image_hdr
-        else:
-            # LDR + HDR 6채널 출력 (기존 방식과 호환)
-            img_ldr_, alpha, image_hdr_ = self.tonemap(image_hdr)
-            img_ldr = img_ldr_ * 2 - 1  # [-1, 1]
-            image_hdr_normalized = image_hdr_ * 2 - 1
-            image_hdr_normalized = np.clip(image_hdr_normalized, -1, 1e8)
-            image = np.concatenate((img_ldr, image_hdr_normalized), axis=2)
+        # 카메라 기울기 증강 (Stage 1 전용)
+        if self.use_tilt_augment:
+            image_hdr = self._apply_tilt_augment(image_hdr)
+
+        # 음수 값 방지 (물리적 휘도는 0 이상)
+        image_hdr = np.maximum(image_hdr, 0.0)
 
         # HWC => CHW
-        if image.ndim == 2:
-            image = image[:, :, np.newaxis]
-        image = image.transpose(2, 0, 1)
+        image = image_hdr.transpose(2, 0, 1)
 
         return image.astype(np.float32)
 
     def _resize_hdr(self, image, target_h, target_w):
         """
-        HDR 이미지를 Lanczos 리샘플링으로 리사이즈
+        HDR 이미지를 로그 도메인에서 리사이즈 (기하평균 기반)
 
-        주의: 휘도 값 보존을 위해 선형 공간에서 리사이즈
+        로그 공간의 산술평균 = 선형 공간의 기하평균으로,
+        피크 휘도를 보존하고 Lanczos 링잉 아티팩트를 방지한다.
         """
-        # OpenCV는 채널별로 리사이즈
-        resized = cv2.resize(
-            image,
-            (target_w, target_h),
-            interpolation=cv2.INTER_LANCZOS4
-        )
-        return resized
+        return log_domain_resize(image, target_h, target_w)
+
+    def _apply_tilt_augment(self, image_hdr):
+        """
+        카메라 기울기 augmentation (ERP 회전)
+
+        skylibs EnvironmentMap.rotate()로 ERP를 실제 회전하여
+        다양한 촬영 각도를 시뮬레이션한다. Stage 1(구조 학습) 전용.
+
+        범위:
+            azimuth:   ±π      (수평 회전 — ERP wrap-around, 정보 손실 없음)
+            elevation: ±π/12   (±15° pitch — 실제 촬영 시 최대한 수평으로 촬영)
+            roll:      ±π/24   (±7.5° roll — 보수적 범위)
+        """
+        from skylibs.envmap import rotation_matrix
+
+        az = np.random.uniform(-np.pi, np.pi)
+        el = np.random.uniform(-np.pi / 12, np.pi / 12)
+        ro = np.random.uniform(-np.pi / 24, np.pi / 24)
+        dcm = rotation_matrix(azimuth=az, elevation=el, roll=ro)
+
+        env = EnvironmentMap(image_hdr, 'latlong')
+        env.rotate("DCM", dcm)
+        return env.data.astype(np.float32)
 
     def _load_raw_labels(self):
         fname = 'dataset.json'

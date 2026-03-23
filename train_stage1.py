@@ -109,10 +109,9 @@ def setup_stage1_training_kwargs(
     args.training_set_kwargs = dnnlib.EasyDict(
         class_name='training.dataset.HDRPhysicalDataset',
         path=data,
-        linear_hdr=True,  # 톤매핑 비활성화
-        dataset_type='s2r_hdr',  # S2R-HDR 데이터셋
         target_height=512,
         target_width=1024,
+        use_tilt_augment=True,  # 카메라 기울기 augmentation (Stage 1 전용)
         use_labels=False,
         max_size=None,
         xflip=mirror,
