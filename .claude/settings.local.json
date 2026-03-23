@@ -35,7 +35,9 @@
       "Bash(ls:*)",
       "Bash(find:*)",
       "Bash(~/.bashrc)",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Skill(update-config)",
+      "WebFetch(domain:claude.ai)"
     ]
   }
 }
