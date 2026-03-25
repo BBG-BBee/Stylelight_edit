@@ -54,6 +54,7 @@ def setup_stage1_training_kwargs(
     # 학습 설정
     kimg: int = 10000,
     batch: int = None,
+    batch_gpu: int = None,
     gamma: float = None,
 
     # 증강
@@ -192,7 +193,10 @@ def setup_stage1_training_kwargs(
         batch = max(2, 8 // gpus)  # GPU당 2-4
 
     args.batch_size = batch
-    args.batch_gpu = batch // gpus
+    if batch_gpu is None:
+        args.batch_gpu = min(batch // gpus, batch)
+    else:
+        args.batch_gpu = batch_gpu
 
     # 학습률 설정
     args.G_opt_kwargs = dnnlib.EasyDict(
@@ -348,6 +352,7 @@ class CommaSeparatedList(click.ParamType):
 # 학습 설정
 @click.option('--kimg', help='학습 기간 (kimg) [기본값: 10000]', type=int, default=10000, metavar='INT')
 @click.option('--batch', help='배치 크기 [기본값: GPU에 맞게 자동]', type=int, metavar='INT')
+@click.option('--batch-gpu', help='GPU당 마이크로배치 크기 (gradient accumulation용)', type=int, metavar='INT')
 @click.option('--gamma', help='R1 gamma 오버라이드', type=float, metavar='FLOAT')
 
 # 증강

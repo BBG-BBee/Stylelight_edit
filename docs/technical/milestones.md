@@ -159,7 +159,7 @@ $$\mathcal{L}_{Total} = \mathcal{L}_{Phys}(DTAM) + \lambda \mathcal{L}_{Consist}
 | **$RMSE_{trans}$** | 전이 구간 (300~1,000 $cd/m^2$) 복원 정확도 | 최소화 |
 | **DGP Class Accuracy** | 눈부심 등급 (Imperceptible ~ Intolerable) 분류 정확도 | 최대화 |
 | **PU21-PSNR** | 지각적 품질 지표 | 기존 대비 향상 |
-| **HDR-VDP-3 Q-Score** | HDR 품질 점수 | 기존 대비 향상 |
+| **HDR-VDP-3 Q-Score** | HDR 품질 점수 (외부 도구 hdrvdp3 CLI 사용) | 기존 대비 향상 |
 
 #### 정성적 평가
 

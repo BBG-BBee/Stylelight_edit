@@ -35,7 +35,6 @@
 |------|------|
 | [프로젝트 소개](getting-started/overview.md) | StyleLight 배경 및 현재 프로젝트 목표 |
 | [환경 설정](getting-started/installation.md) | CUDA 12.1 + GCC 12 환경 구성 (Linux/WSL2) |
-| [FAQ](getting-started/faq.md) | 자주 발생하는 오류 해결 |
 
 ### 학습 가이드
 

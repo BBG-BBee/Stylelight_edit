@@ -1,5 +1,8 @@
 training-runs-paper512-cyclic-new-training-128x256-ws_plus_coor2_accepted2/
 training-runs-paper512-cyclic-new-training-128x256-ws_plus_coor2-accepted/
 
+# Python 캐시
+__pycache__/
+
 # mkdocs 빌드 결과물
 site/

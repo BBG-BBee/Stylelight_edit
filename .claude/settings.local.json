@@ -37,7 +37,8 @@
       "Bash(~/.bashrc)",
       "Bash(grep:*)",
       "Skill(update-config)",
-      "WebFetch(domain:claude.ai)"
+      "WebFetch(domain:claude.ai)",
+      "Bash(wc -l /e/DL_Dataset/Stylelight_edit/training/*.py)"
     ]
   }
 }

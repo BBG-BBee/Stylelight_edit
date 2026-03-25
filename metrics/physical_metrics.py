@@ -357,6 +357,40 @@ class PhysicalMetrics:
             'top_k_rmse': top_k_rmse
         }
 
+    def pu21_psnr(self, pred_hdr: torch.Tensor, gt_hdr: torch.Tensor,
+                  pu21_mode: str = 'simple') -> Dict[str, float]:
+        """
+        PU21 인코딩 후 PSNR 계산
+
+        지각적으로 균일한(PU21) 도메인에서 PSNR을 측정합니다.
+
+        Args:
+            pred_hdr: 예측 HDR 이미지 (B, 3, H, W)
+            gt_hdr: 정답 HDR 이미지 (B, 3, H, W)
+            pu21_mode: PU21 인코딩 모드 ('simple', 'barten', 'peaks')
+
+        Returns:
+            pu21_psnr: PU21-PSNR 값 (dB)
+            pu21_mse: PU21 도메인 MSE
+        """
+        from training.pu21 import PU21Encoder
+
+        encoder = PU21Encoder(mode=pu21_mode)
+        pred_lum = self.rgb_to_luminance(pred_hdr).clamp(min=1e-6)
+        gt_lum = self.rgb_to_luminance(gt_hdr).clamp(min=1e-6)
+
+        pred_pu = encoder.encode(pred_lum)
+        gt_pu = encoder.encode(gt_lum)
+
+        mse = F.mse_loss(pred_pu, gt_pu).item()
+        max_val = gt_pu.max().item()
+        psnr = 10 * np.log10(max_val ** 2 / mse) if mse > 0 else float('inf')
+
+        return {
+            'pu21_psnr': psnr,
+            'pu21_mse': mse
+        }
+
     def evaluate(self,
                  pred_hdr: torch.Tensor,
                  gt_hdr: torch.Tensor) -> Dict[str, any]:
@@ -390,12 +424,17 @@ class PhysicalMetrics:
         peak_metrics = self.peak_luminance_accuracy(pred_hdr, gt_hdr)
         results.update({f'peak_{k}': v for k, v in peak_metrics.items()})
 
+        # PU21-PSNR
+        pu21_metrics = self.pu21_psnr(pred_hdr, gt_hdr)
+        results.update({f'pu21_{k}': v for k, v in pu21_metrics.items()})
+
         # 요약
         results['summary'] = {
             'delta_ev_rel': ev_metrics['delta_ev_rel'],
             'rmse_transition': rmse_metrics['rmse_transition'],
             'histogram_intersection': hist_metrics['histogram_intersection'],
-            'peak_error_rel': peak_metrics['peak_error_rel']
+            'peak_error_rel': peak_metrics['peak_error_rel'],
+            'pu21_psnr': pu21_metrics['pu21_psnr']
         }
 
         return results
@@ -426,5 +465,9 @@ class PhysicalMetrics:
         print(f"  예측 최대: {metrics.get('peak_peak_pred', 0):.2f} cd/m²")
         print(f"  정답 최대: {metrics.get('peak_peak_gt', 0):.2f} cd/m²")
         print(f"  피크 오차: {metrics.get('peak_peak_error_rel', 0):.2f}%")
+
+        print('\n[PU21-PSNR]')
+        print(f"  PU21-PSNR: {metrics.get('pu21_pu21_psnr', 0):.2f} dB")
+        print(f"  PU21-MSE: {metrics.get('pu21_pu21_mse', 0):.6f}")
 
         print('\n' + '=' * 60)

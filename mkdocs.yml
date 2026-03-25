@@ -48,9 +48,9 @@ nav:
   - 시작하기:
     - 프로젝트 소개: getting-started/overview.md
     - 환경 설정: getting-started/installation.md
-    - FAQ: getting-started/faq.md
   - 학습 가이드:
     - 학습 실행: training/guide.md
+    - CLI 레퍼런스: training/cli-reference.md
   - 구현:
     - 구현 계획: implementation/plan.md
     - 구현 결과: implementation/result.md

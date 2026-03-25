@@ -171,6 +171,7 @@ def setup_stage2_training_kwargs(
     # 학습 설정
     kimg: int = 5000,
     batch: int = None,
+    batch_gpu: int = None,
     gamma: float = None,
 
     # S2R-Adapter 설정
@@ -360,7 +361,10 @@ def setup_stage2_training_kwargs(
         batch = max(2, 8 // gpus)
 
     args.batch_size = batch
-    args.batch_gpu = batch // gpus
+    if batch_gpu is None:
+        args.batch_gpu = min(batch // gpus, batch)
+    else:
+        args.batch_gpu = batch_gpu
 
     # S2R-Adapter는 더 높은 학습률 가능
     args.G_opt_kwargs = dnnlib.EasyDict(
@@ -580,6 +584,7 @@ class CommaSeparatedList(click.ParamType):
 # 학습 설정
 @click.option('--kimg', help='학습 기간 (kimg) [기본값: 5000]', type=int, default=5000, metavar='INT')
 @click.option('--batch', help='배치 크기', type=int, metavar='INT')
+@click.option('--batch-gpu', help='GPU당 마이크로배치 크기 (gradient accumulation용)', type=int, metavar='INT')
 @click.option('--gamma', help='R1 gamma 오버라이드', type=float, metavar='FLOAT')
 
 # S2R-Adapter 설정
