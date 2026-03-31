@@ -1,14 +1,43 @@
+import os
 import warnings
 
 import numpy as np
 
 
+_HAS_OPENEXR = False
 try:
     import OpenEXR
     import Imath
-
+    _HAS_OPENEXR = True
 except Exception as e:
     pass
+
+_HAS_CV2_EXR = False
+try:
+    import cv2
+    os.environ.setdefault('OPENCV_IO_ENABLE_OPENEXR', '1')
+    _HAS_CV2_EXR = True
+except Exception:
+    pass
+
+
+def _cv2_imread(filename):
+    """cv2 fallback for EXR reading (returns RGB float32)."""
+    img = cv2.imread(filename, cv2.IMREAD_ANYCOLOR | cv2.IMREAD_ANYDEPTH)
+    if img is None:
+        raise Exception(f"cv2 failed to read EXR: {filename}")
+    # BGR -> RGB
+    if img.ndim == 3 and img.shape[2] >= 3:
+        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+    return img.astype(np.float32)
+
+
+def _cv2_imwrite(filename, arr):
+    """cv2 fallback for EXR writing (expects RGB float32)."""
+    if arr.ndim == 3 and arr.shape[2] >= 3:
+        arr = cv2.cvtColor(arr, cv2.COLOR_RGB2BGR)
+    if not cv2.imwrite(filename, arr):
+        raise Exception(f"cv2 failed to write EXR: {filename}")
 
 
 def imread(filename, bufferImage=None, rgb=True):
@@ -26,7 +55,9 @@ def imread(filename, bufferImage=None, rgb=True):
                        Useful for Blender Cycles' output.
     """
 
-    if 'OpenEXR' not in globals():
+    if not _HAS_OPENEXR:
+        if _HAS_CV2_EXR:
+            return _cv2_imread(filename)
         print(">>> Install OpenEXR-Python with `conda install -c conda-forge openexr openexr-python`\n\n")
         raise Exception("Please Install OpenEXR-Python")
 
@@ -133,7 +164,9 @@ def imwrite(filename, arr, **params):
         else:
             ch_names = ['Y{}'.format(idx) for idx in range(d)]
 
-    if 'OpenEXR' not in globals():
+    if not _HAS_OPENEXR:
+        if _HAS_CV2_EXR:
+            return _cv2_imwrite(filename, arr)
         print(">>> Install OpenEXR-Python with `conda install -c conda-forge openexr openexr-python`\n\n")
         raise Exception("Please Install OpenEXR-Python")
 

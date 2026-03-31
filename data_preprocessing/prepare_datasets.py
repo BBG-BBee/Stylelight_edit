@@ -162,16 +162,18 @@ def prepare_laval_photometric(input_dir: str, output_dir: str,
                                target_resolution: tuple = (512, 1024),
                                apply_exposure: bool = True):
     """
-    Laval Photometric Indoor HDR 데이터셋을 절대 휘도(cd/m²)로 변환
+    Laval Photometric Indoor 데이터셋 전처리
 
-    Laval 데이터셋은 색차계로 보정된 실측 HDR 데이터입니다.
+    Laval 데이터셋은 색차계로 보정된 실측 데이터로, EXR 포맷에
+    절대 휘도(cd/m²)가 이미 반영되어 있습니다.
+    .hdr 포맷 입력 시에는 Radiance HDR 헤더의 EXPOSURE 값을 읽어 보정합니다.
     Stage 2 학습(물리 보정)에 사용됩니다.
 
     Args:
         input_dir: Laval 원본 데이터 경로
         output_dir: 변환된 데이터 저장 경로
         target_resolution: (height, width) 형태의 목표 해상도
-        apply_exposure: HDR 헤더의 노출값을 적용할지 여부
+        apply_exposure: .hdr 포맷 입력 시 Radiance HDR 헤더의 노출값을 적용할지 여부 (EXR은 해당 없음)
 
     Returns:
         processed_count: 처리된 이미지 수
@@ -252,7 +254,7 @@ def prepare_laval_photometric(input_dir: str, output_dir: str,
             if need_bit_convert:
                 image_hdr = image_hdr.astype(np.float32)
 
-            # 노출값 적용 (Laval 데이터셋의 경우 헤더에 노출 정보가 있음)
+            # 노출값 적용 (.hdr 포맷의 경우 Radiance 헤더에 EXPOSURE 값이 포함됨, EXR은 절대 휘도가 이미 반영되어 스킵)
             if apply_exposure:
                 exposure = _read_hdr_exposure(str(file_path))
                 if exposure is not None:

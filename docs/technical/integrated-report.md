@@ -229,19 +229,19 @@ $512 \times 1024$ 해상도의 Full FP32 학습을 위해 **NVIDIA RTX 5090**을
 2. pytorch360convert로 $512 \times 1024$ Equirectangular 변환
 3. float32 변환 (톤 매핑 없이 선형 휘도 유지)
 
-### 6.2 Laval Photometric Indoor HDR
+### 6.2 Laval Photometric Indoor
 
 | 항목 | 내용 |
 |------|------|
 | **장수** | 1,719장 |
 | **특징** | 물리적 휘도 보정 완료 |
-| **포맷** | HDR |
+| **포맷** | EXR |
 
 **전처리 과정:**
 
-1. .hdr 파일 헤더의 노출 값(Exposure) 반영
-2. 절대 휘도($cd/m^2$)로 변환
-3. FP32 텐서화
+1. EXR 포맷으로 절대 휘도($cd/m^2$)가 이미 반영됨 (별도 노출 보정 불필요)
+2. 512×1024 Equirectangular로 로그 도메인 리사이즈
+3. FP32 EXR 저장
 
 ---
 

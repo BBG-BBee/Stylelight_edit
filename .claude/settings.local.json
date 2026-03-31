@@ -38,7 +38,8 @@
       "Bash(grep:*)",
       "Skill(update-config)",
       "WebFetch(domain:claude.ai)",
-      "Bash(wc -l /e/DL_Dataset/Stylelight_edit/training/*.py)"
+      "Bash(wc -l /e/DL_Dataset/Stylelight_edit/training/*.py)",
+      "Bash(OPENCV_IO_ENABLE_OPENEXR=1 python -c \":*)"
     ]
   }
 }
