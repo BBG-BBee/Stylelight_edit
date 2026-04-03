@@ -1,7 +1,7 @@
 """
 HDR GAN Inversion Coach
 
-NFoV HDR 입력(23mm, ~63° FOV)으로부터 풀 파노라마를 생성하는 추론 파이프라인.
+NFoV HDR 입력으로부터 풀 파노라마를 생성하는 추론 파이프라인.
 초점 마스킹 GAN 역전환 + PTI(Pivotal Tuning Inversion)으로
 물리적 휘도(cd/m²)를 보존하면서 최적의 파노라마를 생성합니다.
 
@@ -37,14 +37,14 @@ from training.s2r_adapter import (
 )
 
 
-def _load_hdr_to_erp(image_path, erp_height=512, vfov=63.0):
+def _load_hdr_to_erp(image_path, vfov, erp_height=512):
     """
     HDR NFoV 이미지를 ERP에 embed
 
     Args:
         image_path: HDR 이미지 경로 (.exr, .hdr)
         erp_height: ERP 높이 (너비는 2배)
-        vfov: 수직 화각 (기본 63° — 23mm 렌즈)
+        vfov: 수직 화각 (도)
 
     Returns:
         masked_pano: (H, W, 3) FP32 ERP (cd/m² 스케일, 빈 영역은 0)
@@ -87,8 +87,9 @@ def _load_hdr_to_erp(image_path, erp_height=512, vfov=63.0):
 
 class MyCoach(BaseCoach):
 
-    def __init__(self, data_loader, use_wandb):
+    def __init__(self, data_loader, use_wandb, vfov):
         super().__init__(data_loader, use_wandb)
+        self.vfov = vfov
 
     def train(self):
         """
@@ -104,7 +105,7 @@ class MyCoach(BaseCoach):
 
         for image_name in tqdm(self.data_loader):
             # ── HDR 입력 전처리 ──
-            masked_pano, bbox = _load_hdr_to_erp(image_name)
+            masked_pano, bbox = _load_hdr_to_erp(image_name, vfov=self.vfov)
 
             # (H, W, C) → (1, C, H, W) 텐서 변환 (cd/m² 유지)
             image = torch.from_numpy(masked_pano.transpose(2, 0, 1).copy()).to(global_config.device)
@@ -195,7 +196,7 @@ class MyCoach(BaseCoach):
 
         for image_name in tqdm(self.data_loader):
             # ── HDR 입력 전처리 ──
-            masked_pano, bbox = _load_hdr_to_erp(image_name)
+            masked_pano, bbox = _load_hdr_to_erp(image_name, vfov=self.vfov)
 
             image = torch.from_numpy(masked_pano.transpose(2, 0, 1).copy()).to(global_config.device)
             image = image.unsqueeze(0).to(torch.float32)

@@ -4,7 +4,7 @@
 NFoV 입력 → HDR 파노라마 생성 → 원형어안 HDR 출력
 
 워크플로우:
-1. NFoV 이미지 입력 (23mm 렌즈, ~63° FOV)
+1. NFoV 이미지 입력 (초점거리에 따라 vFOV 자동 계산)
 2. Generator로 512x1024 Equirectangular HDR 생성
 3. 전방 180° 영역 크롭 (512x512)
 4. SwinIR로 초해상도 (512x512 → 1024x1024)
@@ -353,18 +353,18 @@ class ValidationPipeline:
 
     def preprocess_lfov_input(self,
                               image_path: str,
-                              vfov: float = 63.0,
+                              vfov: float,
                               azimuth: float = 0.0,
                               elevation: float = 0.0) -> Tuple[torch.Tensor, torch.Tensor]:
         """
         NFoV HDR 이미지를 ERP 마스크드 입력으로 변환
 
-        23mm 렌즈(~63° FoV)로 촬영한 HDR 이미지를 512×1024 Equirectangular에
+        NFoV HDR 이미지를 512×1024 Equirectangular에
         embed하여 Generator 입력(GAN Inversion 등)으로 사용할 수 있는 형태로 변환한다.
 
         Args:
             image_path: NFoV HDR 이미지 경로 (.exr, .hdr)
-            vfov: 수직 화각 (기본 63° — 23mm 렌즈)
+            vfov: 수직 화각 (도)
             azimuth: 카메라 방위각 (rad)
             elevation: 카메라 고도각 (rad)
 
@@ -413,7 +413,7 @@ class ValidationPipeline:
     def run(self,
             z: Optional[torch.Tensor] = None,
             input_path: Optional[str] = None,
-            vfov: float = 63.0,
+            vfov: float = 55.1,
             azimuth: float = 0.0,
             elevation: float = 0.0,
             output_path: str = 'output_fisheye.hdr',
@@ -425,7 +425,7 @@ class ValidationPipeline:
         Args:
             z: latent 벡터 (None이면 랜덤)
             input_path: NFoV HDR 입력 이미지 경로 (지정 시 LFOV 전처리 수행)
-            vfov: 수직 화각 (기본 63° — 23mm 렌즈)
+            vfov: 수직 화각 (도)
             azimuth: 카메라 방위각 (rad)
             elevation: 카메라 고도각 (rad)
             output_path: 출력 파일 경로
@@ -567,14 +567,29 @@ def main():
     # LFOV 입력 전처리 옵션
     parser.add_argument('--input', type=str, default=None,
                         help='NFoV HDR 입력 이미지 경로 (.exr, .hdr)')
-    parser.add_argument('--vfov', type=float, default=63.0,
-                        help='수직 화각 (기본값: 63° — 23mm 렌즈)')
+    parser.add_argument('--focal_mm', type=float, default=None,
+                        help='렌즈 초점거리 (mm, 풀프레임 환산). 미지정 시 대화형 입력')
+    parser.add_argument('--vfov', type=float, default=None,
+                        help='수직 화각 (도). 직접 지정 시 --focal_mm보다 우선')
     parser.add_argument('--az', type=float, default=0.0,
                         help='카메라 방위각 azimuth (rad)')
     parser.add_argument('--el', type=float, default=0.0,
                         help='카메라 고도각 elevation (rad)')
 
     args = parser.parse_args()
+
+    # vFOV 결정: --vfov 직접 지정 > --focal_mm > 대화형 입력
+    from utils.hdr_utils import focal_to_vfov
+    if args.vfov is not None:
+        vfov = args.vfov
+    elif args.focal_mm is not None:
+        vfov = focal_to_vfov(args.focal_mm)
+        print(f'[FOV] {args.focal_mm}mm → vFOV={vfov:.1f}°')
+    else:
+        focal_input = input('렌즈 초점거리 입력 (mm, 풀프레임 환산, 기본값 23): ').strip()
+        focal_mm = float(focal_input) if focal_input else 23.0
+        vfov = focal_to_vfov(focal_mm)
+        print(f'[FOV] {focal_mm}mm → vFOV={vfov:.1f}°')
 
     # 시드 설정
     if args.seed is not None:
@@ -591,7 +606,7 @@ def main():
     # 실행
     results = pipeline.run(
         input_path=args.input,
-        vfov=args.vfov,
+        vfov=vfov,
         azimuth=args.az,
         elevation=args.el,
         output_path=args.output,

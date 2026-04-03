@@ -248,7 +248,7 @@ python inference/validation_pipeline.py \
     --checkpoint ./training-runs-stage2/network-snapshot.pkl \
     --output ./results/output.hdr \
     --input ./photos/lfov_image.hdr \
-    --vfov 63.0
+    --focal_mm 23
 ```
 
 ### 추론 옵션
@@ -263,7 +263,8 @@ python inference/validation_pipeline.py \
 | `--save_intermediate` | 중간 결과 저장 | False |
 | `--device` | 디바이스 | cuda |
 | `--input` | LFOV 입력 이미지 경로 | None |
-| `--vfov` | 입력 이미지 수직 화각 (°) | 63.0 |
+| `--focal_mm` | 렌즈 초점거리 (mm, 풀프레임 환산) | None (대화형 입력) |
+| `--vfov` | 수직 화각 직접 지정 (°). focal_mm보다 우선 | None |
 | `--az` | 방위각 오프셋 (°) | 0.0 |
 | `--el` | 고도 오프셋 (°) | 0.0 |
 

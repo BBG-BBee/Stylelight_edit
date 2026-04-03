@@ -9,6 +9,7 @@ from setup_env import setup_cuda_environment
 setup_cuda_environment(verbose=True)  # False는 환경 설정 메시지 최소화
 
 from PTI_utils import global_config, paths_config, hyperparameters
+from utils.hdr_utils import focal_to_vfov
 import wandb
 from training.coaches.my_coach import MyCoach
 from training.coaches.my_editor import MyEditor
@@ -57,23 +58,26 @@ def run_PTI(run_name='', use_wandb=False):
 
     # dataloader = DataLoader(dataset, batch_size=1, shuffle=False)
 
+    # 대화형 초점거리 입력
+    focal_input = input('렌즈 초점거리 입력 (mm, 풀프레임 환산, 기본값 23): ').strip()
+    if focal_input == '':
+        focal_mm = 23.0
+    else:
+        focal_mm = float(focal_input)
+    vfov = focal_to_vfov(focal_mm)
+    print(f'[FOV] {focal_mm}mm → vFOV={vfov:.1f}°')
+
     # hyperparameters.edit 값에 따라 모드 결정 (조명 추정 vs 조명 편집)
     if not hyperparameters.edit:
         # [조명 추정 모드 (Lighting Estimation)]
-        # IndoorHDRDataset 등의 테스트 데이터셋 경로 설정
-        # root_path = '/home/deep/projects/mini-stylegan2/Evaluation/data/ground_truth_ours_neg0.6_60degree_HR/crop_test_high_resolution/*png'
         root_path = './before_image/'
-        
-        # 데이터 로더 설정: 파일 경로 리스트를 가져와서 사용 - 경로 내 모든 파일을 처리하도록 수정함
-        # jpg와 png 파일 모두 가져오기 (대소문자 구분 없이 처리하기 위해 여러 패턴 시도하거나 간단히 주요 확장자만 지정)
-        dataloader = sorted(glob.glob(root_path + '*jpg') + glob.glob(root_path + '*png') + glob.glob(root_path + '*jpeg'))
-        # dataloader = sorted(glob.glob(root_path)) 
 
-        # root_path = 'assets/wild2/*jp*g'
-        # dataloader = sorted(glob.glob(root_path))
+        # 데이터 로더 설정: HDR 이미지 파일 경로 리스트
+        dataloader = sorted(glob.glob(root_path + '*exr') + glob.glob(root_path + '*hdr') +
+                            glob.glob(root_path + '*jpg') + glob.glob(root_path + '*png'))
 
         # MyCoach: 조명 추정 및 파노라마 생성을 담당하는 코치 클래스 인스턴스화
-        coach = MyCoach(dataloader, use_wandb)
+        coach = MyCoach(dataloader, use_wandb, vfov=vfov)
 
     else:
         # [조명 편집 모드 (Lighting Editing)]

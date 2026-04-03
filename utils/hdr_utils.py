@@ -1,4 +1,5 @@
 """HDR 이미지 처리 유틸리티"""
+import math
 import numpy as np
 import cv2
 
@@ -28,3 +29,17 @@ def log_domain_resize(image_hdr: np.ndarray, target_h: int, target_w: int) -> np
     log_img = np.log(image_hdr + eps)
     log_resized = cv2.resize(log_img, (target_w, target_h), interpolation=cv2.INTER_AREA)
     return np.maximum(np.exp(log_resized) - eps, 0.0)
+
+
+def focal_to_vfov(focal_mm: float, sensor_height: float = 24.0) -> float:
+    """
+    초점거리(mm)에서 수직 화각(°)을 계산
+
+    Args:
+        focal_mm: 렌즈 초점거리 (mm, 풀프레임 환산)
+        sensor_height: 센서 세로 크기 (mm, 기본값: 풀프레임 24mm)
+
+    Returns:
+        vfov: 수직 화각 (도)
+    """
+    return 2 * math.degrees(math.atan(sensor_height / (2 * focal_mm)))
