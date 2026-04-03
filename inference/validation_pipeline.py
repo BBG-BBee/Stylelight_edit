@@ -445,7 +445,7 @@ class ValidationPipeline:
         """
         results = {}
 
-        # Step 0: LFOV 입력 전처리 (지정 시)
+        # Step 0: LFOV 입력 → GAN Inversion → 파노라마 생성
         if input_path is not None:
             print('Step 0: NFoV HDR 입력 전처리 중...')
             masked_pano, mask = self.preprocess_lfov_input(
@@ -453,12 +453,47 @@ class ValidationPipeline:
             )
             results['masked_pano'] = masked_pano
             results['mask'] = mask
-            # TODO: GAN Inversion으로 masked_pano에서 최적 z를 찾는 단계 추가 예정
 
-        # Step 1: 파노라마 생성
-        print('Step 1: 파노라마 생성 중...')
-        panorama = self.generate_panorama(z, truncation_psi)
-        results['panorama'] = panorama
+            # GAN Inversion: masked_pano에서 bbox 영역을 보존하는 최적 w 탐색
+            print('Step 0.5: GAN Inversion (초점 마스킹 HDR 역전환) 중...')
+            from training.projectors import w_projector
+
+            # mask에서 bbox 추출
+            mask_np = mask.squeeze().cpu().numpy()  # (512, 1024)
+            mask_rows = np.any(mask_np > 0, axis=1)
+            mask_cols = np.any(mask_np > 0, axis=0)
+            row_min = int(np.argmax(mask_rows))
+            row_max = int(len(mask_rows) - np.argmax(mask_rows[::-1]))
+            col_min = int(np.argmax(mask_cols))
+            col_max = int(len(mask_cols) - np.argmax(mask_cols[::-1]))
+            bbox = [row_min, row_max, col_min, col_max]
+
+            # HDR 입력 텐서 (cd/m² 스케일)
+            target_hdr = masked_pano.squeeze(0)  # (3, 512, 1024)
+
+            import copy
+            G_copy = copy.deepcopy(self.G).eval().to(self.device)
+            w_opt = w_projector.project(
+                G_copy, bbox, target_hdr,
+                device=self.device,
+                w_avg_samples=600,
+                num_steps=450,
+                w_name='lfov_inversion',
+            )
+            del G_copy
+
+            # 최적 w로 파노라마 생성
+            print('Step 1: 파노라마 생성 중 (GAN Inversion 결과)...')
+            with torch.no_grad():
+                panorama = self.G.synthesis(w_opt.to(self.device), noise_mode='const', force_fp32=True)
+                panorama = torch.clamp(panorama, min=0.0)  # Softplus HDR
+            results['panorama'] = panorama
+
+        else:
+            # 입력 없으면 랜덤 생성
+            print('Step 1: 파노라마 생성 중...')
+            panorama = self.generate_panorama(z, truncation_psi)
+            results['panorama'] = panorama
 
         # Step 2: 전방 180° 크롭
         print('Step 2: 전방 반구 크롭 중...')

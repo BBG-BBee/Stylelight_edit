@@ -11,9 +11,12 @@ from lpips import LPIPS
 from training.projectors import w_projector
 from PTI_utils import global_config, paths_config, hyperparameters
 from PTI_utils import l2_loss
-from PTI_utils.e4e.psp import pSp                    #########
-from PTI_utils.log_utils import log_image_from_w      ########
+from PTI_utils.e4e.psp import pSp
+from PTI_utils.log_utils import log_image_from_w
 from PTI_utils.models_utils import toogle_grad, load_old_G
+
+from training.loss import PhysicalLoss
+from training.dtam import rgb_to_luminance
 
 import numpy as np
 import PIL.Image
@@ -37,6 +40,7 @@ class BaseCoach:
 
         # Initialize loss
         self.lpips_loss = LPIPS(net=hyperparameters.lpips_type).to(global_config.device).eval()
+        self.phys_loss = PhysicalLoss().to(global_config.device).eval()
 
         self.restart_training()
 
@@ -110,15 +114,11 @@ class BaseCoach:
             w = self.get_e4e_inversion(image)
 
         else:
-            id_image = torch.squeeze((image.to(global_config.device) + 1) / 2) * 255
-            if not hyperparameters.edit:
-                w = w_projector.project(self.G, bbox, id_image, device=torch.device(global_config.device), w_avg_samples=600,
-                                        num_steps=hyperparameters.first_inv_steps, w_name=image_name,
-                                        use_wandb=self.use_wandb)                                       ####first_inv_steps =450
-            else:
-                w = w_projector.edit(self.G, bbox, id_image, device=torch.device(global_config.device), w_avg_samples=600,
-                                        num_steps=hyperparameters.first_inv_steps, w_name=image_name,
-                                        use_wandb=self.use_wandb)                  
+            # HDR 이미지를 cd/m² 스케일 그대로 전달
+            id_image = torch.squeeze(image.to(global_config.device))
+            w = w_projector.project(self.G, bbox, id_image, device=torch.device(global_config.device), w_avg_samples=600,
+                                    num_steps=hyperparameters.first_inv_steps, w_name=image_name,
+                                    use_wandb=self.use_wandb)
         return w
 
     @abc.abstractmethod
@@ -131,37 +131,47 @@ class BaseCoach:
         return optimizer
 
     def calc_loss(self, generated_images, real_images, log_name, new_G, use_ball_holder, w_batch):
+        """
+        HDR PTI 손실 함수
+
+        PhysicalLoss(DTAM+PU21)로 물리적 휘도 정합 + 톤매핑 후 LPIPS로 구조적 비교.
+        LDR percentile 기반 light_mask는 DTAM이 대체.
+
+        Args:
+            generated_images: Generator 출력 HDR (B, 3, H, W), cd/m²
+            real_images: 입력 HDR (B, 3, H, W), cd/m²
+        """
         loss = 0.0
 
+        # 물리적 손실: DTAM 가중 PU21 L1 (Stage 2 학습과 동일)
         if hyperparameters.pt_l2_lambda > 0:
-            ### added
-            # if True:# before rebuttal
-            if True:# 
-                percentile = 0.9
-                real_images_singlemap = torch.mean(real_images, dim=1, keepdim=True)
-                r_percentile = torch.quantile(real_images_singlemap, percentile)
-                # [상위 10% 픽셀 마스크 (Top 10% Pixel Mask)]: 입력 이미지에서 밝기가 상위 10%인 픽셀(광원)을 마스킹하여 해당 영역에 가중치를 부여
-                light_mask = (real_images_singlemap > r_percentile)*1.0
-                l2_loss_val = l2_loss.l2_loss(generated_images, real_images)+10*l2_loss.l2_loss(real_images*light_mask, generated_images*light_mask)
-            else:
-                l2_loss_val = l2_loss.l2_loss(generated_images, real_images)#+10*l2_loss.l2_loss(real_images*light_mask, generated_images*light_mask)
-
-
+            phys_loss_val = self.phys_loss(generated_images, real_images)
             if self.use_wandb:
-                wandb.log({f'MSE_loss_val_{log_name}': l2_loss_val.detach().cpu()}, step=global_config.training_step)
-            loss += l2_loss_val * hyperparameters.pt_l2_lambda
+                wandb.log({f'phys_loss_{log_name}': phys_loss_val.detach().cpu()}, step=global_config.training_step)
+            loss += phys_loss_val * hyperparameters.pt_l2_lambda
+        else:
+            phys_loss_val = torch.tensor(0.0)
+
+        # 구조적 손실: 톤매핑 후 LPIPS
         if hyperparameters.pt_lpips_lambda > 0:
-            loss_lpips = self.lpips_loss(generated_images, real_images)
+            # Reinhard 톤매핑하여 LPIPS 입력 범위 [-1, 1]로 변환
+            gen_tm = generated_images / (1.0 + generated_images)   # [0, 1)
+            real_tm = real_images / (1.0 + real_images)            # [0, 1)
+            gen_tm = gen_tm * 2.0 - 1.0   # [-1, 1)
+            real_tm = real_tm * 2.0 - 1.0  # [-1, 1)
+            loss_lpips = self.lpips_loss(gen_tm, real_tm)
             loss_lpips = torch.squeeze(loss_lpips)
             if self.use_wandb:
                 wandb.log({f'LPIPS_loss_val_{log_name}': loss_lpips.detach().cpu()}, step=global_config.training_step)
             loss += loss_lpips * hyperparameters.pt_lpips_lambda
+        else:
+            loss_lpips = torch.tensor(0.0)
 
         if use_ball_holder and hyperparameters.use_locality_regularization:
             ball_holder_loss_val = self.space_regulizer.space_regulizer_loss(new_G, w_batch, use_wandb=self.use_wandb)
             loss += ball_holder_loss_val
 
-        return loss, l2_loss_val, loss_lpips
+        return loss, phys_loss_val, loss_lpips
 
     def forward(self, w):
         generated_images = self.G.synthesis(w, noise_mode='const', force_fp32=True)

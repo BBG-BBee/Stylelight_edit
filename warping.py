@@ -25,15 +25,8 @@ else:
 
 
 
-if False:
-    to_path_crop = '/home/deep/projects/mini-stylegan2/Evaluation/data/ground_truth_ours_neg0.6_60degree/test_crop'
-
 if not os.path.exists(to_path_warp):
     os.mkdir(to_path_warp)
-
-if False:
-    if not os.path.exists(to_path_crop):
-        os.mkdir(to_path_crop)
 
 
 for image_path in image_paths:
@@ -118,32 +111,6 @@ for image_path in image_paths:
 
     # target_new_name= image_path.split('/')[-1].split('.')[0]
     # imsave(f'{to_paths}/{target_new_name}_warp.exr', warp_image)
-
-    #########################################################################
-    #######################################################################
-    if False:
-        # center crop
-        dcm = rotation_matrix(azimuth=0,
-                              # elevation=np.pi/8,
-                              elevation=0,
-                              # roll=np.pi/12)
-                              roll=0)    
-
-        # print('env.data size:', env.data.shape)
-        crop = env.project(vfov=60., # degrees
-                         rotation_matrix=dcm,
-                         ar=4./3.,
-                         # resolution=(640, 480),
-                         # resolution=(256, 128),
-                         resolution=(256, 192),
-                         projection="perspective",
-                         mode="normal") #for cropping
-                         # mode="mask")     # for mask
-        # crop = np.clip(255.*crop, 0, 255).astype('uint8')
-        
-        image_crop_name = os.path.join(to_path_crop, image_path.split('/')[-1])
-        imsave(image_crop_name, crop) 
-
 
 
 

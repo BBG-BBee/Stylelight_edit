@@ -14,8 +14,8 @@ except Exception as e:
 
 _HAS_CV2_EXR = False
 try:
-    import cv2
     os.environ.setdefault('OPENCV_IO_ENABLE_OPENEXR', '1')
+    import cv2
     _HAS_CV2_EXR = True
 except Exception:
     pass
